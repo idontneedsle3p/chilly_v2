@@ -1,0 +1,26 @@
+# Виртуальное окружение Python
+venv/
+env/
+.venv/
+
+# Базы данных SQLite
+*.db
+*.sqlite3
+anime.db
+
+# Кэш Python (создается автоматически, в Git не нужен)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Секретные файлы (на будущее, если добавишь пароли или ключи API)
+.env
+.env.local
+
+# Системные файлы macOS и Windows
+.DS_Store
+Thumbs.db
+
+# Настройки редакторов кода (VS Code, PyCharm)
+.vscode/
+.idea/

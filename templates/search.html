@@ -71,8 +71,9 @@
             <a href="/anime/{{ anime.id }}"
                 class="group relative w-full flex-shrink-0 rounded-2xl overflow-hidden shadow-lg shadow-black/50 hover:shadow-indigo-500/20 hover:-translate-y-2 transition-all duration-300 bg-slate-800">
                 <div class="relative w-full aspect-[2/3] overflow-hidden">
-                    <img src="{{ anime.poster_url }}" alt="{{ anime.title }}"
-                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out">
+                    <img src="{{ anime.poster_url }}" onerror="this.onerror=null; this.src='/static/no-poster.jpg';"
+                        alt="{{ anime.title }}"
+                        class="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700 ease-in-out">
                     <div
                         class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity">
                     </div>

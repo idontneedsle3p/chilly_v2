@@ -3,8 +3,11 @@ from fastapi.templating import Jinja2Templates
 import aiosqlite
 import time  # Добавили модуль для работы со временем
 import difflib  # <--- Добавить эту строку в самом начале
+from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Request, HTTPException, Query, Response
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 DB_PATH = "anime.db"
 
@@ -133,6 +136,68 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
         name="search.html",
         context={"request": request, "results": results[:30], "query": q},
     )
+
+
+# --- НАСТРОЙКИ КЭША ДЛЯ SITEMAP ---
+SITEMAP_CACHE = {"xml": "", "time": 0}
+SITEMAP_TTL = 86400  # Кэшируем карту сайта на 24 часа (86400 секунд)
+
+
+@app.get("/sitemap.xml")
+async def get_sitemap(request: Request):
+    """Динамическая карта сайта для Яндекса и Google."""
+    global SITEMAP_CACHE
+    current_time = time.time()
+
+    # 1. Отдаем из кэша, если он свежий
+    if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"]) < SITEMAP_TTL:
+        return Response(content=SITEMAP_CACHE["xml"], media_type="application/xml")
+
+    # Получаем базовый домен сайта (например, https://твой-домен.com)
+    base_url = str(request.base_url).rstrip("/")
+
+    # 2. Идем в базу данных только за нужными полями (id и дата)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        # Достаем id и updated_at. Это отработает за доли секунды даже на 25к строк.
+        cursor = await db.execute("SELECT id, updated_at FROM anime")
+        animes = await cursor.fetchall()
+
+    # 3. Собираем "шапку" XML файла
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>{base_url}/</loc>
+        <changefreq>hourly</changefreq>
+        <priority>1.0</priority>
+    </url>
+"""
+
+    # 4. Проходимся циклом по всем 25 000 аниме и добавляем их в карту
+    for anime in animes:
+        # Если в базе есть дата обновления - добавляем тег lastmod
+        lastmod_tag = (
+            f"\n        <lastmod>{anime['updated_at']}</lastmod>"
+            if anime["updated_at"]
+            else ""
+        )
+
+        xml_content += f"""
+    <url>
+        <loc>{base_url}/anime/{anime["id"]}</loc>{lastmod_tag}
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>"""
+
+    # Закрываем тег
+    xml_content += "\n</urlset>"
+
+    # 5. Сохраняем готовую карту в кэш
+    SITEMAP_CACHE["xml"] = xml_content
+    SITEMAP_CACHE["time"] = current_time
+
+    # Отдаем файл браузеру/поисковику именно в формате XML
+    return Response(content=xml_content, media_type="application/xml")
 
 
 @app.get("/anime/{anime_id}")
