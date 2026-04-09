@@ -4,7 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ anime.title }} | ChillyAnime</title>
+    <title>Смотреть {{ anime.title }} онлайн бесплатно | GoChilly</title>
+
+    <meta name="description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно. Новые серии на GoChilly.">
+
+    <meta property="og:type" content="video.movie">
+    <meta property="og:title" content="{{ anime.title }} — Смотреть онлайн">
+    <meta property="og:description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно на GoChilly.">
+    <meta property="og:image" content="{{ anime.poster_url }}">
+    <meta property="og:site_name" content="GoChilly">
+    <meta property="og:url" content="{{ request.url }}">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ anime.title }} — Смотреть онлайн">
+    <meta name="twitter:description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно.">
+    <meta name="twitter:image" content="{{ anime.poster_url }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         ::-webkit-scrollbar {
