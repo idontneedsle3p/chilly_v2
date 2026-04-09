@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, HTTPException, Query
 from fastapi.templating import Jinja2Templates
 import aiosqlite
-import time  # Добавили модуль для работы со временем
-import difflib  # <--- Добавить эту строку в самом начале
+import time
+import difflib
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Query, Response
 
@@ -11,9 +11,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 DB_PATH = "anime.db"
 
-# --- НАСТРОЙКИ КЭША ---
 CACHE = {}
-CACHE_TTL = 300  # Время жизни кэша в секундах (300 сек = 5 минут)
+CACHE_TTL = 300
 
 
 @app.get("/")
@@ -31,7 +30,6 @@ async def read_root(request: Request):
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
 
-            # ИСПРАВЛЕНИЕ 1: Добавили WHERE rating > 0 и GROUP BY title
             cursor_new = await db.execute(
                 """
                 SELECT id, title, poster_url, rating_shikimori, year 
@@ -44,7 +42,6 @@ async def read_root(request: Request):
             )
             new_animes = await cursor_new.fetchall()
 
-            # ИСПРАВЛЕНИЕ 2: Добавили GROUP BY title от дубликатов
             cursor_pop = await db.execute(
                 """
                 SELECT id, title, poster_url, rating_shikimori, year 
@@ -77,13 +74,11 @@ async def read_root(request: Request):
 async def search_anime(request: Request, q: str = Query(..., min_length=1)):
     """Умная страница результатов поиска (с защитой от опечаток и регистра)."""
 
-    # Переводим запрос пользователя в нижний регистр и убираем пробелы по краям
     q_lower = q.lower().strip()
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
-        # 1. Забираем ВСЕ аниме из базы (SQLite отдаст это за пару миллисекунд)
         cursor = await db.execute(
             "SELECT id, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
         )
@@ -92,26 +87,20 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
     exact_matches = []
     fuzzy_matches = []
 
-    # Словарь для поиска по опечаткам
     titles_map = {}
 
-    # 2. ИЩЕМ ТОЧНЫЕ СОВПАДЕНИЯ (игнорируя большие/маленькие буквы)
     for anime in all_animes:
-        # Переводим названия из базы в нижний регистр для сравнения
         title = (anime["title"] or "").lower()
         title_orig = (anime["title_orig"] or "").lower()
 
-        # Сохраняем в словарь для следующего шага
         if title:
             titles_map[title] = anime
         if title_orig:
             titles_map[title_orig] = anime
 
-        # Если слово есть в названии - это точное совпадение
         if q_lower in title or q_lower in title_orig:
             exact_matches.append(anime)
 
-    # 3. ИЩЕМ ОПЕЧАТКИ (если точных совпадений нет)
     if not exact_matches:
         # get_close_matches ищет слова, похожие на q_lower.
         # cutoff=0.55 означает, что слова должны совпадать хотя бы на 55%
@@ -127,10 +116,8 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
                 fuzzy_matches.append(anime)
                 seen_ids.add(anime["id"])
 
-    # Если нашли точное совпадение - показываем его. Если нет - показываем похожие.
     results = exact_matches if exact_matches else fuzzy_matches
 
-    # Ограничиваем вывод до 30 карточек, чтобы не перегружать страницу
     return templates.TemplateResponse(
         request=request,
         name="search.html",
@@ -140,7 +127,6 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
 
 @app.get("/catalog")
 async def get_catalog(request: Request, genre: str = Query(None)):
-    # Список популярных жанров (можно потом дополнить или вытягивать из БД)
     genres_list = [
         "Экшен",
         "Фэнтези",
@@ -178,7 +164,6 @@ async def get_faq(request: Request):
 
 @app.get("/roadmap")
 async def get_roadmap(request: Request):
-    # Статусы: 'done' (сделано), 'progress' (в работе), 'planned' (в планах)
     tasks = [
         {
             "title": "Каталог и жанры",
@@ -202,7 +187,7 @@ async def get_roadmap(request: Request):
         },
         {
             "title": "Фильтры по годам и типу",
-            "desc": "Возможность отсеять только фильмы или сериалы 2024 года.",
+            "desc": "Возможность отсеять только фильмы или аниме-сериалы.",
             "status": "progress",
         },
         {
@@ -227,9 +212,8 @@ async def get_roadmap(request: Request):
     )
 
 
-# --- НАСТРОЙКИ КЭША ДЛЯ SITEMAP ---
 SITEMAP_CACHE = {"xml": "", "time": 0}
-SITEMAP_TTL = 86400  # Кэшируем карту сайта на 24 часа (86400 секунд)
+SITEMAP_TTL = 86400
 
 
 @app.get("/sitemap.xml")
@@ -238,21 +222,16 @@ async def get_sitemap(request: Request):
     global SITEMAP_CACHE
     current_time = time.time()
 
-    # 1. Отдаем из кэша, если он свежий
     if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"]) < SITEMAP_TTL:
         return Response(content=SITEMAP_CACHE["xml"], media_type="application/xml")
 
-    # Получаем базовый домен сайта (например, https://твой-домен.com)
     base_url = str(request.base_url).rstrip("/")
 
-    # 2. Идем в базу данных только за нужными полями (id и дата)
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        # Достаем id и updated_at. Это отработает за доли секунды даже на 25к строк.
         cursor = await db.execute("SELECT id, updated_at FROM anime")
         animes = await cursor.fetchall()
 
-    # 3. Собираем "шапку" XML файла
     xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
@@ -262,9 +241,7 @@ async def get_sitemap(request: Request):
     </url>
 """
 
-    # 4. Проходимся циклом по всем 25 000 аниме и добавляем их в карту
     for anime in animes:
-        # Если в базе есть дата обновления - добавляем тег lastmod
         lastmod_tag = (
             f"\n        <lastmod>{anime['updated_at']}</lastmod>"
             if anime["updated_at"]
@@ -278,14 +255,11 @@ async def get_sitemap(request: Request):
         <priority>0.8</priority>
     </url>"""
 
-    # Закрываем тег
     xml_content += "\n</urlset>"
 
-    # 5. Сохраняем готовую карту в кэш
     SITEMAP_CACHE["xml"] = xml_content
     SITEMAP_CACHE["time"] = current_time
 
-    # Отдаем файл браузеру/поисковику именно в формате XML
     return Response(content=xml_content, media_type="application/xml")
 
 

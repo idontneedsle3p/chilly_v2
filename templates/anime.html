@@ -39,12 +39,10 @@
             background: #6366f1;
         }
 
-        /* Жестко растягиваем плеер и убираем любые зазоры */
         #kodik-player {
             width: 100%;
             height: 100%;
             display: flex;
-            /* Схлопывает любые лишние текстовые узлы */
         }
 
         #kodik-player iframe {
@@ -55,7 +53,6 @@
             margin: 0 !important;
             padding: 0 !important;
             border-radius: 0.5rem;
-            /* Скругляем углы самого плеера (как у контейнера) */
         }
     </style>
 </head>
@@ -222,7 +219,6 @@
 
     <script>
         var kodikAddPlayers = {
-        // Сначала пытаемся найти по точным ID (это гарантирует правильный сезон)
         {% if anime.shikimori_id and anime.shikimori_id != 'None' %}
         shikimoriID: "{{ anime.shikimori_id }}",
             {% endif %}
@@ -231,7 +227,6 @@
         kinopoiskID: "{{ anime.kinopoisk_id }}",
             {% endif %}
 
-        // Оставляем название как запасной вариант, если ID вдруг пустые
         title: "{{ anime.title }}",
             types: "anime,anime-serial"
       };

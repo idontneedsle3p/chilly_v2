@@ -8,7 +8,6 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Стилизуем скроллбары под современный дизайн */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -29,8 +28,6 @@
         }
 
         /* indigo-500 */
-
-        /* Скрываем скроллбар для каруселей, но оставляем возможность скроллить */
         .hide-scroll::-webkit-scrollbar {
             display: none;
         }
@@ -195,8 +192,6 @@
     <script>
         function scrollSlider(button, direction) {
             const container = button.parentElement.querySelector('.scroll-container');
-            // Теперь мы прокручиваем ровно на видимую ширину самого контейнера!
-            // Это значит, что прокрутится ровно один блок карточек без сдвигов.
             const scrollAmount = container.clientWidth * direction;
 
             container.scrollBy({
