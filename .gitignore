@@ -24,3 +24,5 @@ Thumbs.db
 # Настройки редакторов кода (VS Code, PyCharm)
 .vscode/
 .idea/
+
+start.bat
