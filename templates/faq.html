@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ — Ответы на вопросы | ChillyAnime</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding-bottom: 1.5rem;
+        }
+
+        .faq-item.active svg {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-300 font-sans antialiased">
+
+    <header class="fixed w-full top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-8">
+            <div class="flex items-center gap-6 shrink-0">
+                <a href="/"
+                    class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">ChillyAnime</a>
+                <a href="/catalog"
+                    class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">Каталог</a>
+            </div>
+            <a href="/" class="text-sm text-slate-400 hover:text-white transition">На главную</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto max-w-3xl px-4 pt-32 pb-20">
+        <h1 class="text-4xl font-black text-white mb-10 tracking-tight">Часто задаваемые <span
+                class="text-indigo-500">вопросы</span></h1>
+
+        <div class="space-y-4">
+            <div
+                class="faq-item bg-slate-900/50 border border-white/5 rounded-2xl px-6 transition-all duration-300 hover:border-indigo-500/30">
+                <button
+                    class="w-full py-6 flex justify-between items-center text-left text-white font-bold text-lg outline-none"
+                    onclick="this.parentElement.classList.toggle('active')">
+                    Почему нет качества 1080p?
+                    <svg class="w-5 h-5 text-indigo-500 transition-transform" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div class="faq-answer text-slate-400 leading-relaxed">
+                    Доступ к плееру с Full HD (1080p) качеством к сожалению сейчас невозможно получить из-за маленького
+                    количества уникальных посетителей сайта.
+                    Главное условие - стабильный рост аудитории сайта. Как только количество уникальных посетителей в
+                    сутки достигнет необходимой отметки, плеер с качеством 1080р появится на сайте. Так что делитесь
+                    ссылкой с
+                    друзьями - это ускорит процесс!
+                </div>
+            </div>
+
+            <div
+                class="faq-item bg-slate-900/50 border border-white/5 rounded-2xl px-6 transition-all duration-300 hover:border-indigo-500/30">
+                <button
+                    class="w-full py-6 flex justify-between items-center text-left text-white font-bold text-lg outline-none"
+                    onclick="this.parentElement.classList.toggle('active')">
+                    Откуда в плеере реклама?
+                    <svg class="w-5 h-5 text-indigo-500 transition-transform" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div class="faq-answer text-slate-400 leading-relaxed">
+                    Мы не размещаем баннеры или всплывающую рекламу на самом сайте. Однако видеоконтент транслируется
+                    через сторонний плеер, который встраивает в него свою рекламу для поддержания работы серверов. Мы
+                    никак не можем на это повлиять.
+                </div>
+            </div>
+
+            <div
+                class="faq-item bg-slate-900/50 border border-white/5 rounded-2xl px-6 transition-all duration-300 hover:border-indigo-500/30">
+                <button
+                    class="w-full py-6 flex justify-between items-center text-left text-white font-bold text-lg outline-none"
+                    onclick="this.parentElement.classList.toggle('active')">
+                    Что делать, если видео тормозит?
+                    <svg class="w-5 h-5 text-indigo-500 transition-transform" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div class="faq-answer text-slate-400 leading-relaxed">
+                    1. Попробуйте сменить озвучку в плеере (иногда серверы одной команды перегружены).<br>
+                    2. Снизьте качество до 480p, если у вас медленное интернет-соединение.<br>
+                    3. Отключите VPN, если он включен — это часто замедляет загрузку потокового видео.
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+
+                <div class="space-y-4">
+                    <a href="/"
+                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">
+                        ChillyAnime
+                    </a>
+                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">
+                        Поделись с другом - это будет лучшей поддержкой если тебе понравился сайт!
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
+                    <ul class="space-y-4 text-sm">
+                        <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a></li>
+                        <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог жанров</a></li>
+                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь
+                                (FAQ)</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество</h4>
+                    <div class="flex flex-col gap-4">
+                        <a href="https://t.me/chilly_anime" target="_blank" class="flex items-center gap-3 group">
+                            <div
+                                class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+                                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.35-.97.53-1.33.52-.4-.01-1.18-.23-1.76-.42-.71-.23-1.28-.35-1.23-.74.03-.2.3-.4.81-.61 3.16-1.37 5.27-2.28 6.33-2.73 3.02-1.28 3.65-1.5 4.06-1.51.09 0 .29.02.42.12.11.08.15.2.16.33.01.06.01.13 0 .2z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm hover:text-white transition">Наш Telegram</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-slate-600">
+                    &copy; 2026 ChillyAnime
+                </p>
+                <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
+                    <span>DMCA</span>
+                    <span>18+</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

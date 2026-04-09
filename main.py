@@ -138,6 +138,44 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
     )
 
 
+@app.get("/catalog")
+async def get_catalog(request: Request, genre: str = Query(None)):
+    # Список популярных жанров (можно потом дополнить или вытягивать из БД)
+    genres_list = [
+        "Экшен",
+        "Фэнтези",
+        "Приключения",
+        "Комедия",
+        "Драма",
+        "Романтика",
+        "Сёнен",
+        "Детектив",
+        "Психология",
+        "Триллер",
+    ]
+
+    animes = []
+    if genre:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            # Ищем жанр внутри строки. % - это любой текст до и после
+            cursor = await db.execute(
+                "SELECT * FROM anime WHERE genres LIKE ? LIMIT 40", (f"%{genre}%",)
+            )
+            animes = await cursor.fetchall()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="catalog.html",
+        context={"genres_list": genres_list, "selected_genre": genre, "animes": animes},
+    )
+
+
+@app.get("/faq")
+async def get_faq(request: Request):
+    return templates.TemplateResponse(request=request, name="faq.html", context={})
+
+
 # --- НАСТРОЙКИ КЭША ДЛЯ SITEMAP ---
 SITEMAP_CACHE = {"xml": "", "time": 0}
 SITEMAP_TTL = 86400  # Кэшируем карту сайта на 24 часа (86400 секунд)
