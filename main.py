@@ -176,6 +176,57 @@ async def get_faq(request: Request):
     return templates.TemplateResponse(request=request, name="faq.html", context={})
 
 
+@app.get("/roadmap")
+async def get_roadmap(request: Request):
+    # Статусы: 'done' (сделано), 'progress' (в работе), 'planned' (в планах)
+    tasks = [
+        {
+            "title": "Каталог и жанры",
+            "desc": "Запуск полноценного поиска по категориям.",
+            "status": "done",
+        },
+        {
+            "title": "OpenGraph разметка",
+            "desc": "Красивые превью ссылок в соцсетях и Telegram.",
+            "status": "done",
+        },
+        {
+            "title": "FAQ и футер",
+            "desc": "Добавление справочной информации и навигации.",
+            "status": "done",
+        },
+        {
+            "title": "Кнопка «Рандомное аниме»",
+            "desc": "Быстрый переход к случайному тайтлу из базы.",
+            "status": "progress",
+        },
+        {
+            "title": "Фильтры по годам и типу",
+            "desc": "Возможность отсеять только фильмы или сериалы 2024 года.",
+            "status": "progress",
+        },
+        {
+            "title": "Личный кабинет (локальный)",
+            "desc": "Список «Избранного» и история просмотров без регистрации.",
+            "status": "planned",
+        },
+        {
+            "title": "Комментарии",
+            "desc": "Обсуждение серий прямо под плеером.",
+            "status": "planned",
+        },
+        {
+            "title": "PWA Приложение",
+            "desc": "Возможность установить сайт на телефон как иконку.",
+            "status": "planned",
+        },
+    ]
+
+    return templates.TemplateResponse(
+        request=request, name="roadmap.html", context={"tasks": tasks}
+    )
+
+
 # --- НАСТРОЙКИ КЭША ДЛЯ SITEMAP ---
 SITEMAP_CACHE = {"xml": "", "time": 0}
 SITEMAP_TTL = 86400  # Кэшируем карту сайта на 24 часа (86400 секунд)
