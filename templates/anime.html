@@ -229,12 +229,16 @@
 
                             <div id="rendex-wrapper" class="hidden w-full h-full">
                                 {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                                <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
-                                    data-width="100%" data-height="100%" data-design="1"></ins>
+                                <iframe
+                                    src="https://river-3-329.kinescopecdn.net/676913736/embed-kp/{{ anime.kinopoisk_id }}"
+                                    style="width:100%; height:100%; position:absolute; top:0; left:0;"
+                                    allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"
+                                    allow="autoplay; encrypted-media; picture-in-picture" frameborder="0">
+                                </iframe>
                                 {% else %}
                                 <div
                                     class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
-                                    Источник 2 сейчас недоступен
+                                    Источник 2 недоступен для этого тайтла
                                 </div>
                                 {% endif %}
                             </div>
