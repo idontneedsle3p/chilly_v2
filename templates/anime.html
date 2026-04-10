@@ -18,7 +18,7 @@
     <meta name="twitter:description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно.">
     <meta name="twitter:image" content="{{ anime.poster_url }}">
 
-    <meta name="referrer" content="no-referrer-when-downgrade">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -227,15 +227,10 @@
                                 <div id="kodik-player"></div>
                             </div>
 
-                            <div id="rendex-wrapper" class="hidden w-full h-full">
+                            <div id="rendex-wrapper" class="absolute inset-0 z-0 opacity-0 pointer-events-none">
                                 {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
                                 <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
-                                    data-width="100%" data-height="100%" data-nopreload="true" data-poster="true"></ins>
-                                {% else %}
-                                <div
-                                    class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
-                                    Второй источник недоступен
-                                </div>
+                                    data-width="100%" data-height="100%" data-design="1"></ins>
                                 {% endif %}
                             </div>
                         </div>
