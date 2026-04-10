@@ -246,23 +246,23 @@
                             const btn2 = document.getElementById('btn-p2');
 
                             if (num === 1) {
-                                // Показываем Кодик
                                 kodik.classList.remove('hidden');
-                                // Уводим Rendex вправо
-                                rendex.classList.add('translate-x-full');
+                                rendex.classList.add('translate-x-full', 'invisible');
                                 rendex.classList.remove('z-20', 'translate-x-0');
 
-                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+                                btn1.className = "px-4 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                                btn2.className = "px-4 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
                             } else {
-                                // Прячем Кодик
                                 kodik.classList.add('hidden');
-                                // Выдвигаем Rendex
-                                rendex.classList.remove('translate-x-full');
+                                rendex.classList.remove('translate-x-full', 'invisible');
                                 rendex.classList.add('z-20', 'translate-x-0');
 
-                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+                                btn2.className = "px-4 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                                btn1.className = "px-4 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
+
+                                setTimeout(() => {
+                                    window.dispatchEvent(new Event('resize'));
+                                }, 100);
                             }
                         }
                     </script>
