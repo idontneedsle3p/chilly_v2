@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Query, Response
 import httpx
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
