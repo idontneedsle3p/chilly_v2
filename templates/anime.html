@@ -219,50 +219,70 @@
 
                     <div
                         class="relative w-full aspect-video rounded-xl p-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-2xl overflow-hidden">
-                        <div class="w-full h-full bg-black rounded-lg overflow-hidden relative">
+                        <div id="player-container" class="w-full h-full bg-black rounded-lg overflow-hidden relative">
 
-                            <div id="kodik-wrapper" class="w-full h-full relative z-10">
+                            <div id="kodik-wrapper" class="w-full h-full">
                                 <div id="kodik-player"></div>
                             </div>
 
-                            <div id="rendex-wrapper" class="absolute inset-0 z-0 transition-transform translate-x-full">
-                                {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                                <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
-                                    data-width="100%" data-height="100%"></ins>
-                                {% else %}
-                                <div class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900">
-                                    Источник 2 недоступен
-                                </div>
-                                {% endif %}
+                            <div id="rendex-wrapper" class="hidden w-full h-full">
                             </div>
+
                         </div>
                     </div>
 
                     <script>
+                        // Флаг, чтобы не инициализировать плеер дважды
+                        let isRendexLoaded = false;
+
                         function switchPlayer(num) {
                             const kodik = document.getElementById('kodik-wrapper');
                             const rendex = document.getElementById('rendex-wrapper');
+                            const container = document.getElementById('player-container');
                             const btn1 = document.getElementById('btn-p1');
                             const btn2 = document.getElementById('btn-p2');
 
                             if (num === 1) {
                                 kodik.classList.remove('hidden');
-                                rendex.classList.add('translate-x-full', 'invisible');
-                                rendex.classList.remove('z-20', 'translate-x-0');
+                                rendex.classList.add('hidden');
 
                                 btn1.className = "px-4 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-lg";
                                 btn2.className = "px-4 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
                             } else {
                                 kodik.classList.add('hidden');
-                                rendex.classList.remove('translate-x-full', 'invisible');
-                                rendex.classList.add('z-20', 'translate-x-0');
+                                rendex.classList.remove('hidden');
 
                                 btn2.className = "px-4 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-lg";
                                 btn1.className = "px-4 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                                setTimeout(() => {
-                                    window.dispatchEvent(new Event('resize'));
-                                }, 100);
+                                // Если это первое нажатие на Источник 2 — вставляем плеер
+                                if (!isRendexLoaded) {
+                                    const kpId = "{{ anime.kinopoisk_id }}";
+
+                                    if (kpId && kpId !== 'None') {
+                                        rendex.innerHTML = `
+                    <ins data-publisher-id="676913736"
+                         data-type="kp"
+                         data-id="${kpId}"
+                         data-width="100%" 
+                         data-height="100%"></ins>
+                `;
+
+                                        // Перезапускаем SDK, чтобы он "увидел" новый тег <ins>
+                                        if (window.RendexSDK) {
+                                            window.RendexSDK.init();
+                                        } else {
+                                            // Если SDK еще не в памяти, подгружаем его динамически
+                                            const script = document.createElement('script');
+                                            script.src = "https://graphicslab.io/sdk/v2/rendex-sdk.min.js";
+                                            document.body.appendChild(script);
+                                        }
+
+                                        isRendexLoaded = true;
+                                    } else {
+                                        rendex.innerHTML = '<div class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">Источник 2 недоступен для этого аниме</div>';
+                                    }
+                                }
                             }
                         }
                     </script>
