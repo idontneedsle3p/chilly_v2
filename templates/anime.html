@@ -229,9 +229,11 @@
 
                             <div id="rendex-wrapper" class="hidden w-full h-full">
                                 {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                                <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
-                                    data-width="100%" data-height="100%" data-nopreload="true" data-poster="true"
-                                    data-design="1"></ins>
+                                <iframe
+                                    src="https://river-3-329.kinescopecdn.net/676913736/embed-kp/{{ anime.kinopoisk_id }}"
+                                    style="width:100%; height:100%;" allowfullscreen="true" webkitallowfullscreen="true"
+                                    mozallowfullscreen="true" allow="autoplay; encrypted-media; picture-in-picture"
+                                    frameborder="0" referrerpolicy="no-referrer-when-downgrade"> </iframe>
                                 {% endif %}
                             </div>
                         </div>
