@@ -229,17 +229,9 @@
 
                             <div id="rendex-wrapper" class="hidden w-full h-full">
                                 {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                                <iframe
-                                    src="https://river-3-329.kinescopecdn.net/676913736/embed-kp/{{ anime.kinopoisk_id }}"
-                                    style="width:100%; height:100%; position:absolute; top:0; left:0;"
-                                    allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"
-                                    allow="autoplay; encrypted-media; picture-in-picture" frameborder="0">
-                                </iframe>
-                                {% else %}
-                                <div
-                                    class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
-                                    Источник 2 недоступен для этого тайтла
-                                </div>
+                                <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
+                                    data-width="100%" data-height="100%" data-nopreload="true" data-poster="true"
+                                    data-design="1"></ins>
                                 {% endif %}
                             </div>
                         </div>
@@ -254,25 +246,21 @@
                         const btn2 = document.getElementById('btn-p2');
 
                         if (num === 1) {
-                            // Показываем Кодик
-                            kodik.classList.remove('hidden');
-                            kodik.classList.add('block');
-                            rendex.classList.add('hidden');
-                            rendex.classList.remove('block');
-
+                            kodik.style.display = 'block';
+                            rendex.style.display = 'none';
                             btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                             btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
                         } else {
-                            // Показываем Rendex
-                            kodik.classList.add('hidden');
-                            kodik.classList.remove('block');
-                            rendex.classList.remove('hidden');
-                            rendex.classList.add('block');
-
+                            kodik.style.display = 'none';
+                            rendex.style.display = 'block';
                             btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                             btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                            // Пинок для плеера
+                            // Если SDK загружен, просим его перепроверить страницу
+                            if (window.RendexSDK) {
+                                window.RendexSDK.init();
+                            }
+
                             setTimeout(() => {
                                 window.dispatchEvent(new Event('resize'));
                             }, 100);
