@@ -6,9 +6,15 @@ import difflib
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Query, Response
 import httpx
+from dotenv import load_dotenv
 
-API_KEY = "23524|qlkhyEHqSHbhpGY7S9w0dn6L71nPdRztNF99ZKDa528ff9c9"
+load_dotenv()
+
+API_KEY = os.getenv("VIBIX_API_KEY")
 BASE_API_URL = "https://vibix.org/"
+
+if not API_KEY:
+    print("api token not found")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -161,7 +167,7 @@ async def get_catalog(request: Request, genre: str = Query(None)):
     )
 
 
-async def get_rendex_data(kp_id: str):
+async def get_vibix_data(kp_id: str):
     if not kp_id or kp_id == "None":
         print("❌ Ошибка: У этого аниме нет Kinopoisk ID в базе")
         return None
@@ -325,9 +331,8 @@ async def read_anime(request: Request, anime_id: str):
     if anime is None:
         raise HTTPException(status_code=404, detail="Аниме не найдено")
 
-    # Получаем данные от API Источника 2
-    rendex_data = await get_rendex_data(anime["kinopoisk_id"])
-    iframe_url = rendex_data.get("iframe_url") if rendex_data else None
+    vibix_data = await get_vibix_data(anime["kinopoisk_id"])
+    iframe_url = vibix_data.get("iframe_url") if vibix_data else None
 
     return templates.TemplateResponse(
         request=request,
@@ -335,6 +340,6 @@ async def read_anime(request: Request, anime_id: str):
         context={
             "request": request,
             "anime": anime,
-            "rendex_iframe": iframe_url,  # Передаем готовую ссылку в шаблон
+            "vibix_iframe": iframe_url,
         },
     )
