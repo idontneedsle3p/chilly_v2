@@ -18,8 +18,8 @@
     <meta name="twitter:description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно.">
     <meta name="twitter:image" content="{{ anime.poster_url }}">
 
-    <meta name="referrer" content="unsafe-url">
-    <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -101,7 +101,6 @@
 
     <main class="container mx-auto px-4 pt-24 pb-8 flex-grow">
         <div class="flex flex-col lg:flex-row gap-10 relative">
-
             <div class="w-full lg:w-[300px] flex-shrink-0 space-y-6 z-10">
                 <div
                     class="relative rounded-2xl overflow-hidden shadow-[0_0_40px_-10px_rgba(99,102,241,0.3)] border border-white/5">
@@ -258,6 +257,7 @@
                             btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                             btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
+                            // Если SDK загружен, просим его перепроверить страницу
                             if (window.RendexSDK) {
                                 window.RendexSDK.init();
                             }
