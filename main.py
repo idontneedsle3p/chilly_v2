@@ -5,6 +5,10 @@ import time
 import difflib
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Query, Response
+import httpx
+
+API_KEY = "23524|qlkhyEHqSHbhpGY7S9w0dn6L71nPdRztNF99ZKDa528ff9c9"
+BASE_API_URL = "https://vibix.org/"
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -157,6 +161,34 @@ async def get_catalog(request: Request, genre: str = Query(None)):
     )
 
 
+async def get_rendex_data(kp_id: str):
+    if not kp_id or kp_id == "None":
+        print("❌ Ошибка: У этого аниме нет Kinopoisk ID в базе")
+        return None
+
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    # Убедись, что адрес API верный (vibix.org или graphicslab.io - проверь в доках)
+    url = f"https://vibix.org/api/v1/publisher/videos/kp/{kp_id}"
+
+    async with httpx.AsyncClient() as client:
+        try:
+            print(f"📡 Запрос к API для kp_id: {kp_id}...")
+            response = await client.get(url, headers=headers, timeout=5.0)
+
+            print(f"🔄 Статус ответа API: {response.status_code}")
+
+            if response.status_code == 200:
+                data = response.json()
+                print(f"✅ Ссылка получена: {data.get('iframe_url')}")
+                return data
+            else:
+                print(f"⚠️ Ошибка API: {response.text}")
+                return None
+        except Exception as e:
+            print(f"🔥 Критическая ошибка запроса: {e}")
+            return None
+
+
 @app.get("/faq")
 async def get_faq(request: Request):
     return templates.TemplateResponse(request=request, name="faq.html", context={})
@@ -285,7 +317,6 @@ async def get_sitemap(request: Request):
 
 @app.get("/anime/{anime_id}")
 async def read_anime(request: Request, anime_id: str):
-    """Страница конкретного аниме (без изменений)."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         cursor = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
@@ -294,6 +325,16 @@ async def read_anime(request: Request, anime_id: str):
     if anime is None:
         raise HTTPException(status_code=404, detail="Аниме не найдено")
 
+    # Получаем данные от API Источника 2
+    rendex_data = await get_rendex_data(anime["kinopoisk_id"])
+    iframe_url = rendex_data.get("iframe_url") if rendex_data else None
+
     return templates.TemplateResponse(
-        request=request, name="anime.html", context={"request": request, "anime": anime}
+        request=request,
+        name="anime.html",
+        context={
+            "request": request,
+            "anime": anime,
+            "rendex_iframe": iframe_url,  # Передаем готовую ссылку в шаблон
+        },
     )
