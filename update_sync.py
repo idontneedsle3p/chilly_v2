@@ -4,25 +4,29 @@ import aiosqlite
 import os
 from dotenv import load_dotenv
 
+# Загрузка настроек
 load_dotenv()
 KODIK_TOKEN = os.getenv("KODIK_TOKEN")
-DB_PATH = "/root/chilly_v2/anime.db"  # Полный путь для Cron
+DB_PATH = "/root/chilly_v2/anime.db"
 
 
 async def quick_update():
+    # Используем лимит 50, чтобы снизить риск ошибки 500 от Kodik
     url = "https://kodik-api.com/list"
     params = {
         "token": KODIK_TOKEN,
         "types": "anime,anime-serial",
         "with_material_data": "true",
-        "limit": 1,
+        "limit": 50,
         "sort": "updated_at",
         "order": "desc",
     }
 
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, params=params, timeout=20.0)
+            print("📡 Запрос обновлений у Kodik...")
+            response = await client.get(url, params=params, timeout=25.0)
+
             if response.status_code != 200:
                 print(f"🛑 Kodik API error: {response.status_code}")
                 return
@@ -30,15 +34,23 @@ async def quick_update():
             data = response.json()
             results = data.get("results", [])
 
+            if not results:
+                print("📭 Новых обновлений пока нет.")
+                return
+
             async with aiosqlite.connect(DB_PATH) as db:
-                added = 0
+                added_or_updated = 0
+
                 for anime in results:
                     kp_id = anime.get("kinopoisk_id")
-                    # Пропускаем, если нет Кинопоиск ID (важно для Vibix)
+
+                    # Пропускаем без ID (Vibix их не покажет)
                     if not kp_id or str(kp_id).lower() == "none":
                         continue
 
                     m_data = anime.get("material_data", {})
+
+                    # Подготавливаем данные
                     anime_data = (
                         anime["id"],
                         anime["type"],
@@ -55,12 +67,28 @@ async def quick_update():
                         m_data.get("shikimori_rating", 0.0),
                         m_data.get("poster_url"),
                         m_data.get("description"),
-                        ", ".join(m_data.get("all_genres", [])),
-                        ", ".join(m_data.get("anime_studios", [])),
+                        (
+                            ", ".join(m_data.get("all_genres", []))
+                            if m_data.get("all_genres")
+                            else ""
+                        ),
+                        (
+                            ", ".join(m_data.get("anime_studios", []))
+                            if m_data.get("anime_studios")
+                            else ""
+                        ),
                         anime.get("link"),
                         anime.get("updated_at"),
                     )
 
+                    # ЛОГИКА БОРЬБЫ С ДУБЛЯМИ:
+                    # 1. Сначала удаляем старую запись с таким же kinopoisk_id (если она есть)
+                    # Это гарантирует, что "Человек-бензопила" всегда будет в одном экземпляре
+                    await db.execute(
+                        "DELETE FROM anime WHERE kinopoisk_id = ?", (str(kp_id),)
+                    )
+
+                    # 2. Вставляем новую (самую свежую по версии Kodik)
                     await db.execute(
                         """
                         INSERT INTO anime (
@@ -69,23 +97,16 @@ async def quick_update():
                             rating_kp, rating_imdb, rating_shikimori, poster_url, 
                             description, genres, studios, player_link, updated_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(id) DO UPDATE SET
-                            episodes_count = excluded.episodes_count,
-                            rating_kp = excluded.rating_kp,
-                            rating_shikimori = excluded.rating_shikimori,
-                            updated_at = excluded.updated_at,
-                            poster_url = excluded.poster_url,
-                            player_link = excluded.player_link
-                    """,
+                        """,
                         anime_data,
                     )
-                    added += 1
+                    added_or_updated += 1
 
                 await db.commit()
-                print(f"✅ Успешно проверено 100 тайтлов. Обновлено/добавлено: {added}")
+                print(f"✅ Обработка завершена. Обновлено тайтлов: {added_or_updated}")
 
         except Exception as e:
-            print(f"🔥 Ошибка при авто-обновлении: {e}")
+            print(f"🔥 Критическая ошибка: {e}")
 
 
 if __name__ == "__main__":
