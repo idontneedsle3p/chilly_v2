@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, HTTPException, Query, Response
 import httpx
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -24,6 +25,21 @@ DB_PATH = "anime.db"
 
 CACHE = {}
 CACHE_TTL = 300
+
+
+def clean_title(title: str) -> str:
+    # Убирает ТВ-1, ТВ-2, 1 сезон, [ТВ-1], (ТВ-2) и прочее
+    patterns = [
+        r"\[?ТВ-\d+\]?",
+        r"\(?ТВ-\d+\)?",
+        r"\d+\s*сезон",
+        r"Часть\s*\d+",
+        r"Season\s*\d+",
+        r"-\d+$",
+    ]
+    for p in patterns:
+        title = re.sub(p, "", title, flags=re.IGNORECASE)
+    return title.strip().rstrip("-").strip()
 
 
 @app.get("/")
@@ -329,24 +345,31 @@ async def robots():
 
 
 @app.get("/anime/{anime_id}")
-async def read_anime(request: Request, anime_id: str):
+async def get_anime_page(request: Request, anime_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
-        anime = await cursor.fetchone()
 
-    if anime is None:
-        raise HTTPException(status_code=404, detail="Аниме не найдено")
+        # 1. Берем текущее аниме
+        curr = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
+        anime = await curr.fetchone()
 
-    vibix_data = await get_vibix_data(anime["kinopoisk_id"])
-    iframe_url = vibix_data.get("iframe_url") if vibix_data else None
+        # 2. Ищем все сезоны этого аниме по KP_ID
+        cursor = await db.execute(
+            "SELECT id, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
+            (anime["kinopoisk_id"],),
+        )
+        seasons = await cursor.fetchall()
 
+        # Очищаем заголовок для отображения
+        display_title = clean_title(anime["title"])
+
+    # Найди это место в main.py и замени:
     return templates.TemplateResponse(
-        request=request,
-        name="anime.html",
-        context={
-            "request": request,
+        request=request,  # Передаем request отдельно (для новых версий FastAPI)
+        name="anime.html",  # Имя шаблона - СТРОКА
+        context={  # Данные - СЛОВАРЬ
             "anime": anime,
-            "vibix_iframe": iframe_url,
+            "clean_title": display_title,
+            "seasons": seasons,
         },
     )

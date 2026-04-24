@@ -19,6 +19,7 @@
     <meta name="twitter:image" content="{{ anime.poster_url }}">
     <meta name="referrer" content="no-referrer-when-downgrade">
 
+    <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -226,15 +227,13 @@
                             </div>
 
                             <div id="vibix-wrapper" class="hidden w-full h-full">
-                                {% if vibix_iframe %}
-                                <iframe src="{{ vibix_iframe }}" style="width:100%; height:100%;" allowfullscreen="true"
-                                    webkitallowfullscreen="true" mozallowfullscreen="true"
-                                    allow="autoplay; encrypted-media; picture-in-picture" frameborder="0">
-                                </iframe>
+                                {% if anime.kinopoisk_id %}
+                                <ins data-publisher-id="676913736" data-type="kp"
+                                    data-id="{{ anime.kinopoisk_id }}"></ins>
                                 {% else %}
                                 <div
                                     class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
-                                    Источник 2 временно недоступен
+                                    Плеер не найден
                                 </div>
                                 {% endif %}
                             </div>
@@ -250,19 +249,22 @@
                         const btn2 = document.getElementById('btn-p2');
 
                         if (num === 1) {
-                            kodik.style.display = 'block';
-                            vibix.style.display = 'none';
+                            kodik.classList.remove('hidden');
+                            vibix.classList.add('hidden');
                             btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                             btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
                         } else {
-                            kodik.style.display = 'none';
-                            vibix.style.display = 'block';
+                            kodik.classList.add('hidden');
+                            vibix.classList.remove('hidden');
                             btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                             btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                            setTimeout(() => {
-                                window.dispatchEvent(new Event('resize'));
-                            }, 100);
+                            // Добавляем принудительную инициализацию для SDK Vibix
+                            if (window.RendexSDK) {
+                                window.RendexSDK.init();
+                            }
+
+                            setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
                         }
                     }
                 </script>
