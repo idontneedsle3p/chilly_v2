@@ -19,6 +19,7 @@
     <meta name="twitter:image" content="{{ anime.poster_url }}">
     <meta name="referrer" content="no-referrer-when-downgrade">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
     <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -56,6 +57,40 @@
             margin: 0 !important;
             padding: 0 !important;
             border-radius: 0.5rem;
+        }
+
+        :root {
+            --accent-color: 99, 102, 241;
+            /* По умолчанию Indigo */
+        }
+
+        /* Мягкое свечение за плеером */
+        .ambient-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(circle, rgba(var(--accent-color), 0.15) 0%, rgba(var(--accent-color), 0) 70%);
+            z-index: 0;
+            pointer-events: none;
+            transition: background 1s ease;
+        }
+
+        /* Рамка плеера теперь будет использовать наш цвет */
+        .player-gradient-border {
+            background: linear-gradient(to right,
+                    rgba(var(--accent-color), 1),
+                    rgba(139, 92, 246, 0.5),
+                    rgba(var(--accent-color), 1));
+            transition: background 1s ease;
+        }
+
+        ins[data-publisher-id] {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
         }
     </style>
 </head>
@@ -104,8 +139,8 @@
             <div class="w-full lg:w-[300px] flex-shrink-0 space-y-6 z-10">
                 <div
                     class="relative rounded-2xl overflow-hidden shadow-[0_0_40px_-10px_rgba(99,102,241,0.3)] border border-white/5">
-                    <img src="{{ anime.poster_url }}" onerror="this.onerror=null; this.src='/static/no-poster.jpg';"
-                        alt="{{ anime.title }}"
+                    <img src="/proxy-image?url={{ anime.poster_url }}" crossorigin="anonymous"
+                        onerror="this.onerror=null; this.src='/static/no-poster.jpg';" alt="{{ anime.title }}"
                         class="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700 ease-in-out">
                 </div>
 
@@ -218,131 +253,166 @@
                         </div>
                     </div>
 
-                    <div
-                        class="relative w-full aspect-video rounded-xl p-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-2xl">
-                        <div class="w-full h-full bg-black rounded-lg overflow-hidden relative">
+                    <div class="relative w-full aspect-video">
+                        <div class="ambient-glow"></div>
 
-                            <div id="kodik-wrapper" class="w-full h-full block">
-                                <div id="kodik-player"></div>
-                            </div>
+                        <div class="relative w-full h-full p-1 rounded-xl shadow-2xl player-gradient-border z-10">
+                            <div class="w-full h-full bg-black rounded-lg overflow-hidden relative player-container">
 
-                            <div id="vibix-wrapper" class="hidden w-full h-full">
-                                {% if anime.kinopoisk_id %}
-                                <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
-                                    data-width="100%" data-height="100%"></ins>
-                                {% else %}
-                                <div
-                                    class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
-                                    Плеер не найден
+                                <div id="kodik-wrapper" class="w-full h-full block">
+                                    <div id="kodik-player"></div>
                                 </div>
-                                {% endif %}
+
+                                <div id="vibix-wrapper" class="hidden w-full h-full">
+                                    {% if anime.kinopoisk_id %}
+                                    <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
+                                        data-width="100%" data-height="100%"></ins>
+                                    {% else %}
+                                    <div
+                                        class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
+                                        Плеер не найден
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <script>
-                    function switchPlayer(num) {
-                        const kodik = document.getElementById('kodik-wrapper');
-                        const vibix = document.getElementById('vibix-wrapper');
-                        const btn1 = document.getElementById('btn-p1');
-                        const btn2 = document.getElementById('btn-p2');
+                    <script>
+                        function switchPlayer(num) {
+                            const kodik = document.getElementById('kodik-wrapper');
+                            const vibix = document.getElementById('vibix-wrapper');
+                            const btn1 = document.getElementById('btn-p1');
+                            const btn2 = document.getElementById('btn-p2');
 
-                        if (num === 1) {
-                            kodik.classList.remove('hidden');
-                            vibix.classList.add('hidden');
-                            btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                            btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
-                        } else {
-                            kodik.classList.add('hidden');
-                            vibix.classList.remove('hidden');
-                            btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                            btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+                            if (num === 1) {
+                                kodik.classList.remove('hidden');
+                                vibix.classList.add('hidden');
+                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+                            } else {
+                                kodik.classList.add('hidden');
+                                vibix.classList.remove('hidden');
+                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                            // Добавляем принудительную инициализацию для SDK Vibix
-                            if (window.RendexSDK) {
-                                window.RendexSDK.init();
+                                // Добавляем принудительную инициализацию для SDK Vibix
+                                if (window.RendexSDK) {
+                                    window.RendexSDK.init();
+                                }
+
+                                setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
                             }
-
-                            setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
                         }
-                    }
-                </script>
+                    </script>
 
-                <script>
-                    var kodikAddPlayers = {
+                    <script>
+                        var kodikAddPlayers = {
         {% if anime.shikimori_id and anime.shikimori_id != 'None' %}
-                    shikimoriID: "{{ anime.shikimori_id }}",
-                        {% endif %}
+                        shikimoriID: "{{ anime.shikimori_id }}",
+                            {% endif %}
 
-                    {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                    kinopoiskID: "{{ anime.kinopoisk_id }}",
-                        {% endif %}
+                        {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
+                        kinopoiskID: "{{ anime.kinopoisk_id }}",
+                            {% endif %}
 
-                    title: "{{ anime.title }}",
-                        types: "anime,anime-serial"
+                        title: "{{ anime.title }}",
+                            types: "anime,anime-serial"
       };
 
-                    !function (e, n, t, r, a) { r = e.createElement(n), a = e.getElementsByTagName(n)[0], r.async = !0, r.src = t, a.parentNode.insertBefore(r, a) }(document, "script", "//kodik-add.com/add-players.min.js");
-                </script>
+                        !function (e, n, t, r, a) { r = e.createElement(n), a = e.getElementsByTagName(n)[0], r.async = !0, r.src = t, a.parentNode.insertBefore(r, a) }(document, "script", "//kodik-add.com/add-players.min.js");
+                    </script>
+                    <script>
+                        const colorThief = new ColorThief();
+                        const posterImg = document.querySelector('img[alt="{{ anime.title }}"]');
 
-                <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
-                    <div class="container mx-auto px-4 py-12">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                        // Чтобы ColorThief сработал, картинка должна быть загружена
+                        if (posterImg.complete) {
+                            applyAmbientColor();
+                        } else {
+                            posterImg.addEventListener('load', function () {
+                                applyAmbientColor();
+                            });
+                        }
 
-                            <div class="space-y-4">
-                                <a href="/"
-                                    class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">
-                                    ChillyAnime
-                                </a>
-                                <p class="text-sm text-slate-500 leading-relaxed max-w-xs">
-                                    Поделись с другом - это будет лучшей поддержкой если тебе понравился сайт!
-                                </p>
-                            </div>
+                        function applyAmbientColor() {
+                            try {
+                                // Получаем основной цвет (RGB массив)
+                                const color = colorThief.getColor(posterImg);
+                                const rgb = `${color[0]}, ${color[1]}, ${color[2]}`;
 
-                            <div>
-                                <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
-                                <ul class="space-y-4 text-sm">
-                                    <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a>
-                                    </li>
-                                    <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог
-                                            жанров</a></li>
-                                    <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь
-                                            (FAQ)</a></li>
-                                </ul>
-                            </div>
+                                // Применяем его к CSS переменной
+                                document.documentElement.style.setProperty('--accent-color', rgb);
 
-                            <div>
-                                <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество
-                                </h4>
-                                <div class="flex flex-col gap-4">
-                                    <a href="https://t.me/chilly_anime" target="_blank"
-                                        class="flex items-center gap-3 group">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition">
-                                            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.35-.97.53-1.33.52-.4-.01-1.18-.23-1.76-.42-.71-.23-1.28-.35-1.23-.74.03-.2.3-.4.81-.61 3.16-1.37 5.27-2.28 6.33-2.73 3.02-1.28 3.65-1.5 4.06-1.51.09 0 .29.02.42.12.11.08.15.2.16.33.01.06.01.13 0 .2z" />
-                                            </svg>
-                                        </div>
-                                        <span class="text-sm hover:text-white transition">Наш Telegram</span>
+                                // Можно также покрасить кнопку каталога или другие детали
+                                const activeBtn = document.querySelector('.bg-indigo-600');
+                                if (activeBtn) activeBtn.style.backgroundColor = `rgb(${rgb})`;
+
+                                console.log("🎨 Цвет успешно адаптирован под постер!");
+                            } catch (e) {
+                                console.log("⚠️ Не удалось получить цвет (возможно, CORS)", e);
+                            }
+                        }
+                    </script>
+
+                    <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
+                        <div class="container mx-auto px-4 py-12">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+
+                                <div class="space-y-4">
+                                    <a href="/"
+                                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">
+                                        ChillyAnime
                                     </a>
+                                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">
+                                        Поделись с другом - это будет лучшей поддержкой если тебе понравился сайт!
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
+                                    <ul class="space-y-4 text-sm">
+                                        <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a>
+                                        </li>
+                                        <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог
+                                                жанров</a></li>
+                                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь
+                                                (FAQ)</a></li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество
+                                    </h4>
+                                    <div class="flex flex-col gap-4">
+                                        <a href="https://t.me/chilly_anime" target="_blank"
+                                            class="flex items-center gap-3 group">
+                                            <div
+                                                class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+                                                <svg class="w-5 h-5 text-blue-400" fill="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.35-.97.53-1.33.52-.4-.01-1.18-.23-1.76-.42-.71-.23-1.28-.35-1.23-.74.03-.2.3-.4.81-.61 3.16-1.37 5.27-2.28 6.33-2.73 3.02-1.28 3.65-1.5 4.06-1.51.09 0 .29.02.42.12.11.08.15.2.16.33.01.06.01.13 0 .2z" />
+                                                </svg>
+                                            </div>
+                                            <span class="text-sm hover:text-white transition">Наш Telegram</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <p class="text-xs text-slate-600">
+                                    &copy; 2026 ChillyAnime
+                                </p>
+                                <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
+                                    <span>DMCA</span>
+                                    <span>18+</span>
                                 </div>
                             </div>
                         </div>
-
-                        <div
-                            class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <p class="text-xs text-slate-600">
-                                &copy; 2026 ChillyAnime
-                            </p>
-                            <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
-                                <span>DMCA</span>
-                                <span>18+</span>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
+                    </footer>
 </body>
 
 </html>
