@@ -17,7 +17,7 @@
     <meta name="twitter:title" content="{{ anime.title }} — Смотреть онлайн">
     <meta name="twitter:description" content="Смотреть аниме «{{ anime.title }}» онлайн бесплатно.">
     <meta name="twitter:image" content="{{ anime.poster_url }}">
-    <meta name="referrer" content="origin">
+    <meta name="referrer" content="no-referrer-when-downgrade">
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -229,8 +229,7 @@
                                 {% if vibix_iframe %}
                                 <iframe src="{{ vibix_iframe }}" style="width:100%; height:100%;" allowfullscreen="true"
                                     webkitallowfullscreen="true" mozallowfullscreen="true"
-                                    allow="autoplay; encrypted-media; picture-in-picture" frameborder="0"
-                                    referrerpolicy="origin">
+                                    allow="autoplay; encrypted-media; picture-in-picture" frameborder="0">
                                 </iframe>
                                 {% else %}
                                 <div
