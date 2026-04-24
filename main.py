@@ -287,22 +287,6 @@ async def get_roadmap(request: Request):
     )
 
 
-@app.get("/proxy-image")
-async def proxy_image(url: str):
-    async with httpx.AsyncClient() as client:
-        try:
-            # Скачиваем картинку
-            response = await client.get(url, timeout=10.0)
-            # Отдаем её с разрешающим заголовком CORS
-            return Response(
-                content=response.content,
-                media_type=response.headers.get("content-type"),
-                headers={"Access-Control-Allow-Origin": "*"},
-            )
-        except Exception:
-            return Response(status_code=404)
-
-
 SITEMAP_CACHE = {"xml": "", "time": 0}
 SITEMAP_TTL = 86400
 
