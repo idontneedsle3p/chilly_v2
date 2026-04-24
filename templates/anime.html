@@ -19,7 +19,6 @@
     <meta name="twitter:image" content="{{ anime.poster_url }}">
     <meta name="referrer" content="no-referrer-when-downgrade">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
     <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -321,38 +320,6 @@
       };
 
                         !function (e, n, t, r, a) { r = e.createElement(n), a = e.getElementsByTagName(n)[0], r.async = !0, r.src = t, a.parentNode.insertBefore(r, a) }(document, "script", "//kodik-add.com/add-players.min.js");
-                    </script>
-                    <script>
-                        const colorThief = new ColorThief();
-                        const posterImg = document.querySelector('img[alt="{{ anime.title }}"]');
-
-                        // Чтобы ColorThief сработал, картинка должна быть загружена
-                        if (posterImg.complete) {
-                            applyAmbientColor();
-                        } else {
-                            posterImg.addEventListener('load', function () {
-                                applyAmbientColor();
-                            });
-                        }
-
-                        function applyAmbientColor() {
-                            try {
-                                // Получаем основной цвет (RGB массив)
-                                const color = colorThief.getColor(posterImg);
-                                const rgb = `${color[0]}, ${color[1]}, ${color[2]}`;
-
-                                // Применяем его к CSS переменной
-                                document.documentElement.style.setProperty('--accent-color', rgb);
-
-                                // Можно также покрасить кнопку каталога или другие детали
-                                const activeBtn = document.querySelector('.bg-indigo-600');
-                                if (activeBtn) activeBtn.style.backgroundColor = `rgb(${rgb})`;
-
-                                console.log("🎨 Цвет успешно адаптирован под постер!");
-                            } catch (e) {
-                                console.log("⚠️ Не удалось получить цвет (возможно, CORS)", e);
-                            }
-                        }
                     </script>
 
                     <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">

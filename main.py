@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, Request, HTTPException, Query, Response
 import httpx
 from dotenv import load_dotenv
+from fastapi.responses import HTMLResponse
 import os
 import re
 
@@ -95,6 +96,11 @@ async def read_root(request: Request):
             "popular_animes": popular_animes,
         },
     )
+
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, __):
+    return templates.TemplateResponse(request=request, name="404.html", status_code=404)
 
 
 @app.get("/search")
@@ -352,6 +358,11 @@ async def get_anime_page(request: Request, anime_id: str):
         # 1. Берем текущее аниме
         curr = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
         anime = await curr.fetchone()
+
+        if not anime:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404)
 
         # 2. Ищем все сезоны этого аниме по KP_ID
         cursor = await db.execute(
