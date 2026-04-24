@@ -15,7 +15,7 @@ async def quick_update():
         "token": KODIK_TOKEN,
         "types": "anime,anime-serial",
         "with_material_data": "true",
-        "limit": 100,
+        "limit": 1,
         "sort": "updated_at",
         "order": "desc",
     }

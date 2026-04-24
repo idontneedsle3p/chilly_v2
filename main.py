@@ -322,6 +322,12 @@ async def get_sitemap(request: Request):
     return Response(content=xml_content, media_type="application/xml")
 
 
+@app.get("/robots.txt")
+async def robots():
+    content = "User-agent: *\nAllow: /\n\nSitemap: https://gochilly.fun/sitemap.xml"
+    return Response(content=content, media_type="text/plain")
+
+
 @app.get("/anime/{anime_id}")
 async def read_anime(request: Request, anime_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
