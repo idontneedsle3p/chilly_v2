@@ -85,7 +85,8 @@ async def quick_update():
                     # 1. Сначала удаляем старую запись с таким же kinopoisk_id (если она есть)
                     # Это гарантирует, что "Человек-бензопила" всегда будет в одном экземпляре
                     await db.execute(
-                        "DELETE FROM anime WHERE kinopoisk_id = ?", (str(kp_id),)
+                        "DELETE FROM anime WHERE kinopoisk_id = ? AND title = ?",
+                        (str(kp_id), anime["title"]),
                     )
 
                     # 2. Вставляем новую (самую свежую по версии Kodik)
