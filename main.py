@@ -60,23 +60,23 @@ async def read_root(request: Request):
 
             cursor_new = await db.execute(
                 """
-                SELECT id, title, poster_url, rating_shikimori, year 
+                SELECT id, title, poster_url, rating_shikimori, year, episodes_count 
                 FROM anime 
                 WHERE rating_shikimori > 0 
                 GROUP BY title 
                 ORDER BY year DESC 
-                LIMIT 12
+                LIMIT 48
                 """
             )
             new_animes = await cursor_new.fetchall()
 
             cursor_pop = await db.execute(
                 """
-                SELECT id, title, poster_url, rating_shikimori, year 
+                SELECT id, title, poster_url, rating_shikimori, year, episodes_count
                 FROM anime 
                 GROUP BY title 
                 ORDER BY rating_shikimori DESC 
-                LIMIT 12
+                LIMIT 48
                 """
             )
             popular_animes = await cursor_pop.fetchall()
