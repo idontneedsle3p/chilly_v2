@@ -1,15 +1,14 @@
-from fastapi import FastAPI, Request, HTTPException, Query
-from fastapi.templating import Jinja2Templates
 import aiosqlite
 import time
 import difflib
-from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI, Request, HTTPException, Query, Response
 import httpx
-from dotenv import load_dotenv
-from fastapi.responses import HTMLResponse
 import os
 import re
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, HTTPException, Query, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 load_dotenv()
 
@@ -101,6 +100,57 @@ async def read_root(request: Request):
 @app.exception_handler(404)
 async def custom_404_handler(request: Request, __):
     return templates.TemplateResponse(request=request, name="404.html", status_code=404)
+
+
+@app.get("/api/search")
+async def api_search(q: str = Query(..., min_length=1)):
+    """API живого поиска, полностью повторяющее логику основного поиска."""
+    q_lower = q.lower().strip()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        # Получаем уникальные тайтлы (как в твоем основном поиске)
+        cursor = await db.execute(
+            "SELECT id, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
+        )
+        all_animes = await cursor.fetchall()
+
+    exact_matches = []
+    titles_map = {}
+
+    for anime in all_animes:
+        title = (anime["title"] or "").lower()
+        title_orig = (anime["title_orig"] or "").lower()
+
+        # Собираем карту для быстрого поиска по названиям
+        if title:
+            titles_map[title] = anime
+        if title_orig:
+            titles_map[title_orig] = anime
+
+        # Логика точного вхождения (exact matches)
+        if q_lower in title or q_lower in title_orig:
+            exact_matches.append(anime)
+
+    # Если точных совпадений нет, ищем похожие (fuzzy matches)
+    if not exact_matches:
+        close_titles = difflib.get_close_matches(
+            q_lower, titles_map.keys(), n=10, cutoff=0.55
+        )
+
+        seen_ids = set()
+        results = []
+        for ct in close_titles:
+            anime = titles_map[ct]
+            if anime["id"] not in seen_ids:
+                results.append(dict(anime))
+                seen_ids.add(anime["id"])
+    else:
+        # Если есть точные совпадения, берем первые 7 самых рейтинговых
+        exact_matches.sort(key=lambda x: x["rating_shikimori"] or 0, reverse=True)
+        results = [dict(a) for a in exact_matches[:7]]
+
+    return results
 
 
 @app.get("/search")
@@ -223,74 +273,20 @@ async def get_faq(request: Request):
     return templates.TemplateResponse(request=request, name="faq.html", context={})
 
 
-@app.get("/roadmap")
-async def get_roadmap(request: Request):
-    tasks = [
-        {
-            "title": "Каталог и жанры",
-            "desc": "Запуск полноценного поиска по категориям.",
-            "status": "done",
-        },
-        {
-            "title": "OpenGraph разметка",
-            "desc": "Красивые превью ссылок в соцсетях и Telegram.",
-            "status": "done",
-        },
-        {
-            "title": "FAQ и футер",
-            "desc": "Добавление справочной информации и навигации.",
-            "status": "done",
-        },
-        {
-            "title": "Второй плеер",
-            "desc": "Добавление второго плеера с наличием 1080р.",
-            "status": "done",
-        },
-        {
-            "title": "Актуализация информации",
-            "desc": "Автоматическое обновление информации и обновление новых тайтлов.",
-            "status": "progress",
-        },
-        {
-            "title": "Наполнение главной страницы",
-            "desc": "Добавление разных категорий на главной странице.",
-            "status": "progress",
-        },
-        {
-            "title": "Связанные тайтлы",
-            "desc": "Добавление связанных с тайтлом релизов на странице с плеером.",
-            "status": "progress",
-        },
-        {
-            "title": "Кнопка «Рандомное аниме»",
-            "desc": "Быстрый переход к случайному тайтлу из базы.",
-            "status": "planned",
-        },
-        {
-            "title": "Фильтры по годам и типу",
-            "desc": "Возможность отсеять только фильмы или аниме-сериалы.",
-            "status": "planned",
-        },
-        {
-            "title": "Личный кабинет (локальный)",
-            "desc": "Список «Избранного» и история просмотров без регистрации.",
-            "status": "planned",
-        },
-        {
-            "title": "Комментарии",
-            "desc": "Обсуждение серий прямо под плеером.",
-            "status": "planned",
-        },
-        {
-            "title": "PWA Приложение",
-            "desc": "Возможность установить сайт на телефон как иконку.",
-            "status": "planned",
-        },
-    ]
+@app.get("/random")
+async def get_random_anime():
+    """Выбирает случайное аниме из базы и перенаправляет на его страницу."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        # ORDER BY RANDOM() — самый простой способ для SQLite выбрать одну случайную строку
+        cursor = await db.execute("SELECT id FROM anime ORDER BY RANDOM() LIMIT 1")
+        anime = await cursor.fetchone()
 
-    return templates.TemplateResponse(
-        request=request, name="roadmap.html", context={"tasks": tasks}
-    )
+        if anime:
+            return RedirectResponse(url=f"/anime/{anime['id']}")
+
+        # Если база пуста, возвращаем на главную
+        return RedirectResponse(url="/")
 
 
 SITEMAP_CACHE = {"xml": "", "time": 0}

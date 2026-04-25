@@ -7,6 +7,8 @@
     <title>FAQ — Ответы на вопросы | ChillyAnime</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/js/bookmarks.js"></script>
+    <script src="/static/js/search.js"></script>
     <style>
         ::-webkit-scrollbar {
             width: 8px;
@@ -39,20 +41,70 @@
 </head>
 
 <body class="bg-slate-950 text-slate-300 font-sans antialiased">
+    <div id="search-overlay"
+        class="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-[45] hidden transition-all duration-300"></div>
 
-    <header class="fixed w-full top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
-        <div class="container mx-auto px-4 py-3 flex items-center justify-between gap-8">
-            <div class="flex items-center gap-6 shrink-0">
-                <a href="/"
-                    class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">ChillyAnime</a>
-                <a href="/catalog"
-                    class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">Каталог</a>
+    <header
+        class="fixed w-full top-0 z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 md:py-5">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+                <div class="flex items-center justify-between md:justify-start gap-4 md:gap-8">
+                    <a href="/"
+                        class="text-2xl md:text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text hover:opacity-80 transition flex-shrink-0">
+                        ChillyAnime
+                    </a>
+
+                    <nav class="flex items-center gap-1 md:gap-2">
+                        <a href="/catalog"
+                            class="flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">
+                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16m-7 6h7"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Каталог</span>
+                        </a>
+                        <a href="/random"
+                            class="flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-yellow-500 transition">
+                            <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            <span class="hidden sm:inline">Случайное</span>
+                        </a>
+                        <button onclick="openBookmarks()"
+                            class="flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">
+                            <svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Закладки</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <form action="/search" method="get" class="relative w-full md:max-w-[350px] z-[60]">
+                    <input type="text" id="live-search" name="q" placeholder="Найти аниме..." autocomplete="off"
+                        required
+                        class="w-full bg-slate-900 text-slate-100 rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none border border-slate-700 focus:border-indigo-500 transition-all shadow-inner">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+
+                    <div id="search-results"
+                        class="absolute top-full left-0 w-full mt-2 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden hidden">
+                        <div id="results-list" class="p-2 space-y-1 max-h-[65vh] overflow-y-auto">
+                        </div>
+                    </div>
+                </form>
             </div>
-            <a href="/" class="text-sm text-slate-400 hover:text-white transition">На главную</a>
         </div>
     </header>
 
-    <main class="container mx-auto max-w-3xl px-4 pt-32 pb-20">
+    <main class="container mx-auto px-4 pt-32 md:pt-28 pb-8 flex-grow">
         <h1 class="text-4xl font-black text-white mb-10 tracking-tight">Часто задаваемые <span
                 class="text-indigo-500">вопросы</span></h1>
 
@@ -115,27 +167,20 @@
     <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
         <div class="container mx-auto px-4 py-12">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-
                 <div class="space-y-4">
                     <a href="/"
-                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">
-                        ChillyAnime
-                    </a>
-                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">
-                        Поделись с другом - это будет лучшей поддержкой если тебе понравился сайт!
-                    </p>
+                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">ChillyAnime</a>
+                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">Поделись с другом - это будет лучшей
+                        поддержкой если тебе понравился сайт!</p>
                 </div>
-
                 <div>
                     <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
                     <ul class="space-y-4 text-sm">
                         <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a></li>
                         <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог жанров</a></li>
-                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь
-                                (FAQ)</a></li>
+                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь (FAQ)</a></li>
                     </ul>
                 </div>
-
                 <div>
                     <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество</h4>
                     <div class="flex flex-col gap-4">
@@ -152,11 +197,8 @@
                     </div>
                 </div>
             </div>
-
             <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                <p class="text-xs text-slate-600">
-                    &copy; 2026 ChillyAnime
-                </p>
+                <p class="text-xs text-slate-600">&copy; 2026 ChillyAnime</p>
                 <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
                     <span>DMCA</span>
                     <span>18+</span>
@@ -164,6 +206,51 @@
             </div>
         </div>
     </footer>
+    <div id="bookmarks-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeBookmarks()"></div>
+        <div
+            class="absolute right-0 top-0 h-full w-full max-w-md bg-slate-900 shadow-2xl border-l border-white/5 flex flex-col">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path>
+                    </svg>
+                    Мои списки
+                </h2>
+                <button onclick="closeBookmarks()" class="p-2 hover:bg-white/5 rounded-full transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-y-auto p-6 space-y-8">
+                <section>
+                    <h3
+                        class="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Смотрю
+                    </h3>
+                    <div id="list-watching" class="space-y-2"></div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-pink-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Буду смотреть
+                    </h3>
+                    <div id="list-planned" class="space-y-2"></div>
+                </section>
+
+                <section>
+                    <h3
+                        class="text-xs font-black uppercase tracking-widest text-green-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Просмотрено
+                    </h3>
+                    <div id="list-watched" class="space-y-2"></div>
+                </section>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

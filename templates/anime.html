@@ -19,8 +19,10 @@
     <meta name="twitter:image" content="{{ anime.poster_url }}">
     <meta name="referrer" content="no-referrer-when-downgrade">
 
+    <script src="/static/js/bookmarks.js"></script>
     <script src="https://graphicslab.io/sdk/v2/rendex-sdk.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/js/search.js"></script>
 
     <style>
         ::-webkit-scrollbar {
@@ -96,44 +98,68 @@
 
 <body
     class="bg-slate-950 text-slate-300 font-sans antialiased selection:bg-pink-500 selection:text-white min-h-screen flex flex-col">
+    <div id="search-overlay"
+        class="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-[45] hidden transition-all duration-300"></div>
 
     <header
-        class="fixed w-full top-0 z-50 bg-slate-950/70 backdrop-blur-md border-b border-white/5 transition-all duration-300">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-8">
-                <a href="/"
-                    class="text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text hover:opacity-80 transition">
-                    ChillyAnime
-                </a>
+        class="fixed w-full top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 md:py-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-                <nav class="hidden md:flex items-center">
-                    <a href="/catalog"
-                        class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 
-                  bg-white/5 border border-white/10 text-slate-300 hover:bg-indigo-500/10 hover:border-indigo-500/50 hover:text-white hover:shadow-[0_0_20px_-5px_rgba(99,102,241,0.3)]">
-                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16m-7 6h7"></path>
-                        </svg>
-                        Каталог
+                <div class="flex items-center justify-between md:justify-start gap-4 md:gap-8">
+                    <a href="/"
+                        class="text-2xl md:text-3xl font-extrabold tracking-tighter bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text hover:opacity-80 transition flex-shrink-0">
+                        ChillyAnime
                     </a>
-                </nav>
-            </div>
 
-            <form action="/search" method="get" class="w-full md:w-1/3 relative group">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg class="w-5 h-5 text-slate-400 group-focus-within:text-indigo-400 transition" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
+                    <nav class="flex items-center gap-1 md:gap-2">
+                        <a href="/catalog"
+                            class="flex-shrink-0 flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">
+                            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16m-7 6h7"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Каталог</span>
+                        </a>
+                        <a href="/random"
+                            class="flex-shrink-0 flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-yellow-500 transition">
+                            <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                </path>
+                            </svg>
+                            <span class="hidden sm:inline">Случайное</span>
+                        </a>
+                        <button onclick="openBookmarks()"
+                            class="flex-shrink-0 flex items-center gap-2 px-2 md:px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-white transition">
+                            <svg class="w-4 h-4 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Закладки</span>
+                        </button>
+                    </nav>
                 </div>
-                <input type="text" name="q" placeholder="Найти аниме..." required
-                    class="w-full bg-slate-900 text-slate-100 rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 border border-slate-700 focus:border-indigo-500 transition-all shadow-inner">
-            </form>
+
+                <form action="/search" method="get" class="relative w-full md:max-w-[350px] z-[60]">
+                    <input type="text" id="live-search" name="q" placeholder="Найти аниме..." autocomplete="off"
+                        required
+                        class="w-full bg-slate-900 text-slate-100 rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none border border-slate-700 focus:border-indigo-500 transition-all shadow-inner">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <div id="search-results"
+                        class="absolute top-full left-0 w-full mt-2 bg-slate-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden hidden">
+                        <div id="results-list" class="p-2 space-y-1 max-h-[65vh] overflow-y-auto"></div>
+                    </div>
+                </form>
+            </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 pt-24 pb-8 flex-grow">
+    <main class="container mx-auto px-4 pt-32 md:pt-24 pb-8 flex-grow">
         <div class="flex flex-col lg:flex-row gap-10 relative">
             <div class="w-full lg:w-[300px] flex-shrink-0 space-y-6 z-10">
                 <div
@@ -176,9 +202,11 @@
             </div>
 
             <div class="w-full lg:w-3/4 flex flex-col z-10">
-                <h1 class="text-3xl lg:text-5xl font-extrabold text-white mb-2 leading-tight tracking-tight">{{
-                    anime.title }}</h1>
-                <h2 class="text-xl text-slate-500 mb-8 font-medium">{{ anime.title_orig }}</h2>
+                <h1
+                    class="text-3xl lg:text-5xl font-extrabold text-white mb-2 leading-tight tracking-tight break-words">
+                    {{ anime.title }}
+                </h1>
+                <h2 class="text-xl text-slate-500 mb-8 font-medium break-words">{{ anime.title_orig }}</h2>
 
                 <div class="mb-10 bg-slate-900/40 p-6 rounded-2xl border border-white/5">
                     <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
@@ -189,6 +217,47 @@
                         Об аниме
                     </h3>
                     <p class="text-slate-300 leading-relaxed text-justify">{{ anime.description }}</p>
+                    <div class="mt-6 flex flex-wrap gap-2">
+                        <button id="btn-planned"
+                            onclick="setAnimeStatus('{{ anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}', 'planned')"
+                            class="status-btn px-4 py-2 rounded-xl border border-white/5 bg-slate-800 text-xs font-bold hover:bg-pink-500/20 transition-all">Буду
+                            смотреть</button>
+
+                        <button id="btn-watching"
+                            onclick="setAnimeStatus('{{ anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}', 'watching')"
+                            class="status-btn px-4 py-2 rounded-xl border border-white/5 bg-slate-800 text-xs font-bold hover:bg-indigo-500/20 transition-all">Смотрю</button>
+
+                        <button id="btn-watched"
+                            onclick="setAnimeStatus('{{ anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}', 'watched')"
+                            class="status-btn px-4 py-2 rounded-xl border border-white/5 bg-slate-800 text-xs font-bold hover:bg-green-500/20 transition-all">Просмотрено</button>
+                    </div>
+
+                    <script>
+                        // Подсветка активной кнопки при загрузке страницы
+                        function updateButtonsUI(activeStatus) {
+                            document.querySelectorAll('.status-btn').forEach(btn => {
+                                btn.classList.remove('bg-indigo-600', 'bg-pink-600', 'bg-green-600', 'text-white');
+                                btn.classList.add('bg-slate-800', 'text-slate-300');
+                            });
+
+                            const activeBtn = document.getElementById('btn-' + activeStatus);
+                            if (activeBtn) {
+                                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+                                let colorClass = activeStatus === 'planned' ? 'bg-pink-600' : (activeStatus === 'watching' ? 'bg-indigo-600' : 'bg-green-600');
+                                activeBtn.classList.add(colorClass, 'text-white');
+                            }
+                        }
+
+                        // Проверяем текущий статус при загрузке
+                        document.addEventListener('DOMContentLoaded', () => {
+                            const data = getStorage();
+                            let currentStatus = 'none';
+                            LIST_KEYS.forEach(key => {
+                                if (data[key].some(item => item.id === '{{ anime.id }}')) currentStatus = key;
+                            });
+                            updateButtonsUI(currentStatus);
+                        });
+                    </script>
 
                     <div
                         class="mt-8 p-5 bg-slate-900/30 rounded-2xl border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -252,7 +321,7 @@
                         </div>
                     </div>
 
-                    <div class="relative w-full aspect-video">
+                    <div class="relative w-full aspect-video overflow-hidden rounded-xl">
                         <div class="ambient-glow"></div>
 
                         <div class="relative w-full h-full p-1 rounded-xl shadow-2xl player-gradient-border z-10">
@@ -276,110 +345,153 @@
                             </div>
                         </div>
                     </div>
+                </div>
+    </main>
+    <script>
+        function switchPlayer(num) {
+            const kodik = document.getElementById('kodik-wrapper');
+            const vibix = document.getElementById('vibix-wrapper');
+            const btn1 = document.getElementById('btn-p1');
+            const btn2 = document.getElementById('btn-p2');
 
-                    <script>
-                        function switchPlayer(num) {
-                            const kodik = document.getElementById('kodik-wrapper');
-                            const vibix = document.getElementById('vibix-wrapper');
-                            const btn1 = document.getElementById('btn-p1');
-                            const btn2 = document.getElementById('btn-p2');
+            if (num === 1) {
+                kodik.classList.remove('hidden');
+                vibix.classList.add('hidden');
+                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+            } else {
+                kodik.classList.add('hidden');
+                vibix.classList.remove('hidden');
+                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
+                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                            if (num === 1) {
-                                kodik.classList.remove('hidden');
-                                vibix.classList.add('hidden');
-                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
-                            } else {
-                                kodik.classList.add('hidden');
-                                vibix.classList.remove('hidden');
-                                btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
-                                btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
+                // Добавляем принудительную инициализацию для SDK Vibix
+                if (window.RendexSDK) {
+                    window.RendexSDK.init();
+                }
 
-                                // Добавляем принудительную инициализацию для SDK Vibix
-                                if (window.RendexSDK) {
-                                    window.RendexSDK.init();
-                                }
+                setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
+            }
+        }
+    </script>
 
-                                setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
-                            }
-                        }
-                    </script>
-
-                    <script>
-                        var kodikAddPlayers = {
+    <script>
+        var kodikAddPlayers = {
         {% if anime.shikimori_id and anime.shikimori_id != 'None' %}
-                        shikimoriID: "{{ anime.shikimori_id }}",
-                            {% endif %}
+        shikimoriID: "{{ anime.shikimori_id }}",
+            {% endif %}
 
-                        {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
-                        kinopoiskID: "{{ anime.kinopoisk_id }}",
-                            {% endif %}
+        {% if anime.kinopoisk_id and anime.kinopoisk_id != 'None' %}
+        kinopoiskID: "{{ anime.kinopoisk_id }}",
+            {% endif %}
 
-                        title: "{{ anime.title }}",
-                            types: "anime,anime-serial"
+        title: "{{ anime.title }}",
+            types: "anime,anime-serial"
       };
 
-                        !function (e, n, t, r, a) { r = e.createElement(n), a = e.getElementsByTagName(n)[0], r.async = !0, r.src = t, a.parentNode.insertBefore(r, a) }(document, "script", "//kodik-add.com/add-players.min.js");
-                    </script>
+        !function (e, n, t, r, a) { r = e.createElement(n), a = e.getElementsByTagName(n)[0], r.async = !0, r.src = t, a.parentNode.insertBefore(r, a) }(document, "script", "//kodik-add.com/add-players.min.js");
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Сохраняем этот тайтл как последний просмотренный
+            saveLastViewed('{{ anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}');
 
-                    <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
-                        <div class="container mx-auto px-4 py-12">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
-
-                                <div class="space-y-4">
-                                    <a href="/"
-                                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">
-                                        ChillyAnime
-                                    </a>
-                                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">
-                                        Поделись с другом - это будет лучшей поддержкой если тебе понравился сайт!
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
-                                    <ul class="space-y-4 text-sm">
-                                        <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a>
-                                        </li>
-                                        <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог
-                                                жанров</a></li>
-                                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь
-                                                (FAQ)</a></li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество
-                                    </h4>
-                                    <div class="flex flex-col gap-4">
-                                        <a href="https://t.me/chilly_anime" target="_blank"
-                                            class="flex items-center gap-3 group">
-                                            <div
-                                                class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition">
-                                                <svg class="w-5 h-5 text-blue-400" fill="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path
-                                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.35-.97.53-1.33.52-.4-.01-1.18-.23-1.76-.42-.71-.23-1.28-.35-1.23-.74.03-.2.3-.4.81-.61 3.16-1.37 5.27-2.28 6.33-2.73 3.02-1.28 3.65-1.5 4.06-1.51.09 0 .29.02.42.12.11.08.15.2.16.33.01.06.01.13 0 .2z" />
-                                                </svg>
-                                            </div>
-                                            <span class="text-sm hover:text-white transition">Наш Telegram</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
+            // ... твой существующий код для закладок ...
+            const data = getStorage();
+            let currentStatus = 'none';
+            LIST_KEYS.forEach(key => {
+                if (data[key].some(item => item.id === '{{ anime.id }}')) currentStatus = key;
+            });
+            updateButtonsUI(currentStatus);
+        });
+    </script>
+    <footer class="mt-auto border-t border-white/5 bg-slate-900/50 backdrop-blur-md">
+        <div class="container mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                <div class="space-y-4">
+                    <a href="/"
+                        class="text-2xl font-black tracking-tighter bg-gradient-to-r from-indigo-400 to-pink-400 text-transparent bg-clip-text">ChillyAnime</a>
+                    <p class="text-sm text-slate-500 leading-relaxed max-w-xs">Поделись с другом - это будет лучшей
+                        поддержкой если тебе понравился сайт!</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Разделы</h4>
+                    <ul class="space-y-4 text-sm">
+                        <li><a href="/" class="hover:text-indigo-400 transition">Главная страница</a></li>
+                        <li><a href="/catalog" class="hover:text-indigo-400 transition">Каталог жанров</a></li>
+                        <li><a href="/faq" class="hover:text-indigo-400 transition">Помощь (FAQ)</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase tracking-widest text-xs">Сообщество</h4>
+                    <div class="flex flex-col gap-4">
+                        <a href="https://t.me/chilly_anime" target="_blank" class="flex items-center gap-3 group">
                             <div
-                                class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-                                <p class="text-xs text-slate-600">
-                                    &copy; 2026 ChillyAnime
-                                </p>
-                                <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
-                                    <span>DMCA</span>
-                                    <span>18+</span>
-                                </div>
+                                class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition">
+                                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.35-.97.53-1.33.52-.4-.01-1.18-.23-1.76-.42-.71-.23-1.28-.35-1.23-.74.03-.2.3-.4.81-.61 3.16-1.37 5.27-2.28 6.33-2.73 3.02-1.28 3.65-1.5 4.06-1.51.09 0 .29.02.42.12.11.08.15.2.16.33.01.06.01.13 0 .2z" />
+                                </svg>
                             </div>
-                        </div>
-                    </footer>
+                            <span class="text-sm hover:text-white transition">Наш Telegram</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-slate-600">&copy; 2026 ChillyAnime</p>
+                <div class="flex gap-6 text-[10px] text-slate-500 uppercase tracking-widest">
+                    <span>DMCA</span>
+                    <span>18+</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <div id="bookmarks-modal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md" onclick="closeBookmarks()"></div>
+        <div
+            class="absolute right-0 top-0 h-full w-full max-w-md bg-slate-900 shadow-2xl border-l border-white/5 flex flex-col">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"></path>
+                    </svg>
+                    Мои списки
+                </h2>
+                <button onclick="closeBookmarks()" class="p-2 hover:bg-white/5 rounded-full transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex-grow overflow-y-auto p-6 space-y-8">
+                <section>
+                    <h3
+                        class="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Смотрю
+                    </h3>
+                    <div id="list-watching" class="space-y-2"></div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-pink-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span> Буду смотреть
+                    </h3>
+                    <div id="list-planned" class="space-y-2"></div>
+                </section>
+
+                <section>
+                    <h3
+                        class="text-xs font-black uppercase tracking-widest text-green-400 mb-4 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Просмотрено
+                    </h3>
+                    <div id="list-watched" class="space-y-2"></div>
+                </section>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
