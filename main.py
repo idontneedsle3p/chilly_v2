@@ -351,32 +351,81 @@ async def get_anime_page(request: Request, anime_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
-        # 1. Берем текущее аниме
+        # 1. Получаем текущее аниме
         curr = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
         anime = await curr.fetchone()
 
         if not anime:
-            from fastapi import HTTPException
-
             raise HTTPException(status_code=404)
 
-        # 2. Ищем все сезоны этого аниме по KP_ID
-        cursor = await db.execute(
-            "SELECT id, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
-            (anime["kinopoisk_id"],),
+        # --- ПРОДВИНУТАЯ ЛОГИКА РЕКОМЕНДАЦИЙ ---
+        genres_list = (
+            [g.strip() for g in anime["genres"].split(",")] if anime["genres"] else []
         )
-        seasons = await cursor.fetchall()
+        stop_words = {"аниме", "мультфильм", "короткометражка", "сериал"}
 
-        # Очищаем заголовок для отображения
+        # Берем до 3-х значимых жанров
+        target_genres = [g for g in genres_list if g.lower() not in stop_words][:3]
+
+        # Определяем основную студию (берем первую из списка)
+        current_studio = (
+            anime["studios"].split(",")[0].strip() if anime["studios"] else ""
+        )
+        current_type = anime["type"]
+        kp_id = anime["kinopoisk_id"]
+
+        similar_animes = []
+        if target_genres:
+            # Условия для жанров
+            where_genres = " OR ".join(["genres LIKE ?" for _ in target_genres])
+            # Веса: Жанры (+1 за каждый), Студия (+2), Тип (+1)
+            weight_genres = " + ".join(
+                [f"(CASE WHEN genres LIKE ? THEN 1 ELSE 0 END)" for _ in target_genres]
+            )
+
+            # Параметры запроса
+            params = [f"%{g}%" for g in target_genres]  # Для WHERE
+            params += [f"%{g}%" for g in target_genres]  # Для веса жанров
+            params.append(
+                f"%{current_studio}%" if current_studio else ""
+            )  # Для веса студии
+            params.append(current_type)  # Для веса типа
+            params.append(anime_id)  # Исключаем само аниме
+            params.append(kp_id)  # Исключаем текущую франшизу
+
+            query = f"""
+                SELECT id, title, poster_url, rating_shikimori, year,
+                (({weight_genres}) + 
+                 (CASE WHEN studios LIKE ? THEN 2 ELSE 0 END) + 
+                 (CASE WHEN type = ? THEN 1 ELSE 0 END)) as weight
+                FROM anime 
+                WHERE ({where_genres}) 
+                AND id != ? 
+                AND (kinopoisk_id IS NULL OR kinopoisk_id != ?)
+                -- Группируем по KP_ID, а если его нет — по ID самого аниме
+                GROUP BY COALESCE(kinopoisk_id, id) 
+                ORDER BY weight DESC, rating_shikimori DESC
+                LIMIT 24
+            """
+
+            cursor_sim = await db.execute(query, params)
+            similar_animes = await cursor_sim.fetchall()
+
+        # 2. Поиск сезонов (как и раньше)
+        cursor_seasons = await db.execute(
+            "SELECT id, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
+            (kp_id,),
+        )
+        seasons = await cursor_seasons.fetchall()
         display_title = clean_title(anime["title"])
 
-    # Найди это место в main.py и замени:
-    return templates.TemplateResponse(
-        request=request,  # Передаем request отдельно (для новых версий FastAPI)
-        name="anime.html",  # Имя шаблона - СТРОКА
-        context={  # Данные - СЛОВАРЬ
-            "anime": anime,
-            "clean_title": display_title,
-            "seasons": seasons,
-        },
-    )
+        return templates.TemplateResponse(
+            request=request,
+            name="anime.html",
+            context={
+                "anime": anime,
+                "clean_title": display_title,
+                "seasons": seasons,
+                "similar_animes": similar_animes,
+            },
+        )
