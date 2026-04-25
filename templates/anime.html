@@ -233,7 +233,6 @@
                     </div>
 
                     <script>
-                        // Подсветка активной кнопки при загрузке страницы
                         function updateButtonsUI(activeStatus) {
                             document.querySelectorAll('.status-btn').forEach(btn => {
                                 btn.classList.remove('bg-indigo-600', 'bg-pink-600', 'bg-green-600', 'text-white');
@@ -248,7 +247,6 @@
                             }
                         }
 
-                        // Проверяем текущий статус при загрузке
                         document.addEventListener('DOMContentLoaded', () => {
                             const data = getStorage();
                             let currentStatus = 'none';
@@ -365,7 +363,6 @@
                 btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                 btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
-                // Добавляем принудительную инициализацию для SDK Vibix
                 if (window.RendexSDK) {
                     window.RendexSDK.init();
                 }
@@ -393,10 +390,8 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Сохраняем этот тайтл как последний просмотренный
             saveLastViewed('{{ anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}');
 
-            // ... твой существующий код для закладок ...
             const data = getStorage();
             let currentStatus = 'none';
             LIST_KEYS.forEach(key => {
