@@ -56,7 +56,7 @@ async def read_root(request: Request):
                     FROM anime 
                     WHERE rating_shikimori > 0 
                     GROUP BY title 
-                    ORDER BY updated_at DESC 
+                    ORDER BY (year >= 2025) DESC, updated_at DESC 
                     LIMIT 48
                     """
             )
