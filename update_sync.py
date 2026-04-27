@@ -12,10 +12,11 @@ DB_PATH = "/root/chilly_v2/anime.db"
 
 
 def generate_slug(title, anime_id):
-    symbols = ("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", "abvgdeejzijklmnoprstufhzcss_y_eua")
+    symbols = ("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", "abvgdeejzijklmnoprstufhzcss-y-eua")
     tr = {ord(a): ord(b) for a, b in zip(*symbols)}
     clean_name = title.lower().translate(tr)
-    clean_name = re.sub(r"[^\w]+", "-", clean_name).strip("-")
+    clean_name = re.sub(r"[^a-z0-9]+", "-", clean_name).strip("-")
+    clean_name = re.sub(r"-+", "-", clean_name)
     short_id = anime_id.split("-")[-1]
     return f"{clean_name}-{short_id}"
 
