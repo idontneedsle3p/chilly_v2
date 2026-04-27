@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request, HTTPException, Query, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -24,7 +25,33 @@ templates = Jinja2Templates(directory="templates")
 DB_PATH = "anime.db"
 
 CACHE = {}
-CACHE_TTL = 300
+CACHE_TTL = 1
+
+
+def timeago(value):
+    if not value:
+        return ""
+    try:
+        # Kodik шлет дату типа "2026-04-28T12:00:00Z"
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        diff = now - dt
+
+        # 1. Если прошло больше суток — показываем дату (день.месяц)
+        if diff.days > 0:
+            return dt.strftime("%d.%m")
+
+        # 2. Если меньше часа — показываем минуты
+        if diff.seconds < 3600:
+            return f"{diff.seconds // 60} мин. назад"
+
+        # 3. Если от 1 до 24 часов — показываем часы
+        return f"{diff.seconds // 3600} ч. назад"
+    except:
+        return value
+
+
+templates.env.filters["timeago"] = timeago
 
 
 def clean_title(title: str) -> str:

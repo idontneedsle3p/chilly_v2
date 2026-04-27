@@ -167,6 +167,10 @@
                                 </svg>
                                 {{ anime.rating_shikimori }}
                             </div>
+                            <div
+                                class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-gray-200 text-[10px] font-medium px-2 py-1 rounded-md border border-white/10 z-10">
+                                {{ anime.updated_at | timeago }}
+                            </div>
                         </div>
                         <div class="mt-3 px-1">
                             <h3

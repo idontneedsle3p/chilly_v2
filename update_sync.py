@@ -54,8 +54,6 @@ async def quick_update():
 
                 for anime in results:
                     kp_id = anime.get("kinopoisk_id")
-
-                    # Пропускаем без ID (Vibix их не покажет)
                     if not kp_id or str(kp_id).lower() == "none":
                         continue
 
@@ -67,30 +65,23 @@ async def quick_update():
                     row = await cursor.fetchone()
 
                     new_episodes = anime.get("episodes_count", 1)
-
                     if anime["type"] == "anime" and new_episodes == 0:
                         new_episodes = 1
 
                     if row:
                         existing_episodes = row[0]
 
-                        # УСЛОВИЕ: Обновляем только если серий стало БОЛЬШЕ
+                        # Обновляем ТОЛЬКО если серий стало больше
                         if new_episodes > existing_episodes:
                             m_data = anime.get("material_data", {})
                             slug = generate_slug(anime["title"], anime["id"])
 
-                            # Вместо DELETE + INSERT делаем UPDATE, чтобы обновить дату и количество
                             await db.execute(
                                 """
                                 UPDATE anime SET 
-                                    slug = ?, 
-                                    episodes_count = ?, 
-                                    updated_at = ?, 
-                                    player_link = ?,
-                                    rating_kp = ?,
-                                    rating_imdb = ?,
-                                    rating_shikimori = ?,
-                                    poster_url = ?
+                                    slug = ?, episodes_count = ?, updated_at = ?, 
+                                    player_link = ?, rating_kp = ?, rating_imdb = ?, 
+                                    rating_shikimori = ?, poster_url = ?
                                 WHERE kinopoisk_id = ? AND title = ?
                                 """,
                                 (
@@ -108,11 +99,10 @@ async def quick_update():
                             )
                             added_or_updated += 1
                         else:
-                            # Если серий столько же или меньше — просто игнорируем это обновление.
-                            # Дата updated_at в базе останется старой, и аниме не всплывет в топе.
+                            # Пропускаем, если серий столько же. updated_at в базе не меняется!
                             continue
                     else:
-                        # 2. Если аниме новое (его нет в базе), вставляем как обычно
+                        # 2. Вставка нового аниме
                         m_data = anime.get("material_data", {})
                         slug = generate_slug(anime["title"], anime["id"])
 
@@ -148,17 +138,12 @@ async def quick_update():
                         )
 
                         await db.execute(
-                            """
-                            INSERT INTO anime (
-                                id, slug, type, title, title_orig, other_title, year, 
-                                episodes_count, kinopoisk_id, shikimori_id, imdb_id, 
-                                rating_kp, rating_imdb, rating_shikimori, poster_url, 
-                                description, genres, studios, player_link, updated_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
+                            "INSERT INTO anime (...) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                             anime_data,
                         )
                         added_or_updated += 1
+
+                # Сохраняем все изменения пачкой после цикла
 
                 await db.commit()
                 print(f"✅ Обработка завершена. Обновлено тайтлов: {added_or_updated}")
