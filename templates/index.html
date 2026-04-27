@@ -137,7 +137,7 @@
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                     {% for anime in new_animes %}
-                    <a href="/anime/{{ anime.id }}"
+                    <a href="/anime/{{ anime.slug if anime.slug else anime.id }}"
                         class="group relative flex flex-col rounded-2xl pb-4 hover:-translate-y-2 transition-all duration-300">
                         <div
                             class="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg shadow-black/40 bg-slate-900">
@@ -211,7 +211,7 @@
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                 {% for anime in popular_animes %}
-                <a href="/anime/{{ anime.id }}"
+                <a href="/anime/{{ anime.slug if anime.slug else anime.id }}"
                     class="group relative flex flex-col rounded-2xl pb-4 hover:-translate-y-2 transition-all duration-300">
                     <div
                         class="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg shadow-black/40 bg-slate-900">
@@ -326,21 +326,21 @@
 
                 section.classList.remove('hidden');
                 container.innerHTML = `
-            <a href="/anime/${last.id}" class="group relative flex items-center gap-6 p-4 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-indigo-500/30 transition-all duration-300 max-w-2xl">
-                <div class="relative w-20 h-28 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
-                    <img src="${last.poster}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-indigo-600/20 group-hover:bg-transparent transition-colors"></div>
-                </div>
-                <div class="flex-grow">
-                    <h3 class="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors mb-2">${last.title}</h3>
-                    <p class="text-sm text-slate-500 mb-4">Нажмите, чтобы продолжить просмотр</p>
-                    <div class="flex items-center gap-2 text-xs font-bold text-indigo-500 uppercase tracking-widest">
-                        Смотреть далее
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <a href="/anime/${last.id}" class="group relative flex items-center gap-6 p-4 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-indigo-500/30 transition-all duration-300 max-w-2xl">
+                    <div class="relative w-20 h-28 flex-shrink-0 overflow-hidden rounded-xl shadow-lg">
+                        <img src="${last.poster}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-indigo-600/20 group-hover:bg-transparent transition-colors"></div>
                     </div>
-                </div>
-            </a>
-        `;
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors mb-2">${last.title}</h3>
+                        <p class="text-sm text-slate-500 mb-4">Нажмите, чтобы продолжить просмотр</p>
+                        <div class="flex items-center gap-2 text-xs font-bold text-indigo-500 uppercase tracking-widest">
+                            Смотреть далее
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                    </div>
+                </a>
+            `;
             }
         });
     </script>

@@ -39,15 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        resultsList.innerHTML = data.map(anime => `
-            <a href="/anime/${anime.id}" class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition group">
+        resultsList.innerHTML = data.map(anime => {
+            const target = anime.slug ? anime.slug : anime.id;
+
+            return `
+            <a href="/anime/${target}" class="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition group">
                 <img src="${anime.poster_url}" class="w-10 h-14 object-cover rounded-lg shadow-md" onerror="this.src='/static/no-poster.jpg'">
                 <div class="flex-grow min-w-0">
                     <div class="text-sm font-bold text-white truncate group-hover:text-indigo-400">${anime.title}</div>
                     <div class="text-[10px] text-slate-500 uppercase mt-0.5">${anime.year} • ★ ${anime.rating_shikimori}</div>
                 </div>
             </a>
-        `).join('') + `
+            `;
+        }).join('') + `
             <button onclick="this.closest('form').submit();" class="w-full py-2 mt-2 border-t border-white/5 text-xs font-bold text-indigo-400 hover:text-white transition">
                 Показать все результаты
             </button>

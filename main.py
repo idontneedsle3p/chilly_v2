@@ -28,7 +28,6 @@ CACHE_TTL = 300
 
 
 def clean_title(title: str) -> str:
-    # Убирает ТВ-1, ТВ-2, 1 сезон, [ТВ-1], (ТВ-2) и прочее
     patterns = [
         r"\[?ТВ-\d+\]?",
         r"\(?ТВ-\d+\)?",
@@ -44,42 +43,29 @@ def clean_title(title: str) -> str:
 
 @app.get("/")
 async def read_root(request: Request):
-    """Главная страница с кэшированием."""
     current_time = time.time()
-
     if "home_page" in CACHE and (current_time - CACHE["home_page"]["time"]) < CACHE_TTL:
-        print("🚀 Отдаем главную страницу из КЭША!")
         new_animes = CACHE["home_page"]["new"]
         popular_animes = CACHE["home_page"]["popular"]
-
     else:
-        print("🐢 Идем в базу данных...")
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
-
             cursor_new = await db.execute(
                 """
-                SELECT id, title, poster_url, rating_shikimori, year, episodes_count 
-                FROM anime 
-                WHERE rating_shikimori > 0 
-                GROUP BY title 
-                ORDER BY year DESC 
-                LIMIT 48
-                """
+                    SELECT id, slug, title, poster_url, rating_shikimori, year, episodes_count, updated_at 
+                    FROM anime 
+                    WHERE rating_shikimori > 0 
+                    GROUP BY title 
+                    ORDER BY updated_at DESC 
+                    LIMIT 48
+                    """
             )
             new_animes = await cursor_new.fetchall()
 
             cursor_pop = await db.execute(
-                """
-                SELECT id, title, poster_url, rating_shikimori, year, episodes_count
-                FROM anime 
-                GROUP BY title 
-                ORDER BY rating_shikimori DESC 
-                LIMIT 48
-                """
+                "SELECT id, slug, title, poster_url, rating_shikimori, year, episodes_count FROM anime GROUP BY title ORDER BY rating_shikimori DESC LIMIT 48"
             )
             popular_animes = await cursor_pop.fetchall()
-
         CACHE["home_page"] = {
             "new": new_animes,
             "popular": popular_animes,
@@ -104,58 +90,39 @@ async def custom_404_handler(request: Request, __):
 
 @app.get("/api/search")
 async def api_search(q: str = Query(..., min_length=1)):
-    """API живого поиска, полностью повторяющее логику основного поиска."""
     q_lower = q.lower().strip()
-
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        # Получаем уникальные тайтлы (как в твоем основном поиске)
         cursor = await db.execute(
-            "SELECT id, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
+            "SELECT id, slug, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
         )
         all_animes = await cursor.fetchall()
 
     exact_matches = []
     titles_map = {}
-
     for anime in all_animes:
-        title = (anime["title"] or "").lower()
-        title_orig = (anime["title_orig"] or "").lower()
-
-        # Собираем карту для быстрого поиска по названиям
-        if title:
-            titles_map[title] = anime
-        if title_orig:
-            titles_map[title_orig] = anime
-
-        # Логика точного вхождения (exact matches)
-        if q_lower in title or q_lower in title_orig:
+        t, to = (anime["title"] or "").lower(), (anime["title_orig"] or "").lower()
+        if t:
+            titles_map[t] = anime
+        if to:
+            titles_map[to] = anime
+        if q_lower in t or q_lower in to:
             exact_matches.append(anime)
 
-    # Если точных совпадений нет, ищем похожие (fuzzy matches)
     if not exact_matches:
         close_titles = difflib.get_close_matches(
             q_lower, titles_map.keys(), n=10, cutoff=0.55
         )
-
-        seen_ids = set()
-        results = []
-        for ct in close_titles:
-            anime = titles_map[ct]
-            if anime["id"] not in seen_ids:
-                results.append(dict(anime))
-                seen_ids.add(anime["id"])
+        results = [dict(titles_map[ct]) for ct in close_titles]
     else:
-        # Если есть точные совпадения, берем первые 7 самых рейтинговых
         exact_matches.sort(key=lambda x: x["rating_shikimori"] or 0, reverse=True)
         results = [dict(a) for a in exact_matches[:7]]
-
     return results
 
 
 @app.get("/search")
 async def search_anime(request: Request, q: str = Query(..., min_length=1)):
-    """Умная страница результатов поиска (с защитой от опечаток и регистра)."""
+    """Поиск"""
 
     q_lower = q.lower().strip()
 
@@ -163,7 +130,7 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
         db.row_factory = aiosqlite.Row
 
         cursor = await db.execute(
-            "SELECT id, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
+            "SELECT id, slug, title, title_orig, poster_url, rating_shikimori, year FROM anime GROUP BY title"
         )
         all_animes = await cursor.fetchall()
 
@@ -185,8 +152,6 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
             exact_matches.append(anime)
 
     if not exact_matches:
-        # get_close_matches ищет слова, похожие на q_lower.
-        # cutoff=0.55 означает, что слова должны совпадать хотя бы на 55%
         close_titles = difflib.get_close_matches(
             q_lower, titles_map.keys(), n=20, cutoff=0.55
         )
@@ -194,7 +159,6 @@ async def search_anime(request: Request, q: str = Query(..., min_length=1)):
         seen_ids = set()
         for ct in close_titles:
             anime = titles_map[ct]
-            # Избегаем дубликатов
             if anime["id"] not in seen_ids:
                 fuzzy_matches.append(anime)
                 seen_ids.add(anime["id"])
@@ -219,7 +183,6 @@ async def get_catalog(request: Request, genre: str = Query(None)):
         "Романтика",
         "Сёнен",
         "Детектив",
-        "Психология",
         "Триллер",
     ]
 
@@ -227,9 +190,9 @@ async def get_catalog(request: Request, genre: str = Query(None)):
     if genre:
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
-            # Ищем жанр внутри строки. % - это любой текст до и после
             cursor = await db.execute(
-                "SELECT * FROM anime WHERE genres LIKE ? LIMIT 40", (f"%{genre}%",)
+                "SELECT id, slug, title, poster_url, rating_shikimori, year, episodes_count FROM anime WHERE genres LIKE ? LIMIT 40",
+                (f"%{genre}%",),
             )
             animes = await cursor.fetchall()
 
@@ -246,7 +209,6 @@ async def get_vibix_data(kp_id: str):
         return None
 
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    # Убедись, что адрес API верный (vibix.org или graphicslab.io - проверь в доках)
     url = f"https://vibix.org/api/v1/publisher/videos/kp/{kp_id}"
 
     async with httpx.AsyncClient() as client:
@@ -275,22 +237,20 @@ async def get_faq(request: Request):
 
 @app.get("/random")
 async def get_random_anime():
-    """Выбирает случайное аниме из базы и перенаправляет на его страницу."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        # ORDER BY RANDOM() — самый простой способ для SQLite выбрать одну случайную строку
-        cursor = await db.execute("SELECT id FROM anime ORDER BY RANDOM() LIMIT 1")
+        cursor = await db.execute(
+            "SELECT id, slug FROM anime ORDER BY RANDOM() LIMIT 1"
+        )
         anime = await cursor.fetchone()
-
         if anime:
-            return RedirectResponse(url=f"/anime/{anime['id']}")
-
-        # Если база пуста, возвращаем на главную
-        return RedirectResponse(url="/")
+            target = anime["slug"] if anime["slug"] else anime["id"]
+            return RedirectResponse(url=f"/anime/{target}")
+    return RedirectResponse(url="/")
 
 
 SITEMAP_CACHE = {"xml": "", "time": 0}
-SITEMAP_TTL = 86400  # Срок годности кэша: 24 часа
+SITEMAP_TTL = 86400
 
 
 @app.get("/sitemap.xml")
@@ -328,31 +288,21 @@ async def sitemap_main():
 
 @app.get("/sitemap_anime.xml")
 async def sitemap_anime():
-    """Ситмап тайтлов"""
     current_time = time.time()
-
     if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"] < SITEMAP_TTL):
         return Response(content=SITEMAP_CACHE["xml"], media_type="application/xml")
 
-    # 3. Генерация нового ситмапа, если кэш пуст или устарел
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT id FROM anime")
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("SELECT id, slug FROM anime")
         rows = await cursor.fetchall()
+
         urls = [
-            f"<url><loc>https://gochilly.fun/anime/{r[0]}</loc><priority>0.7</priority></url>"
+            f"<url><loc>https://gochilly.fun/anime/{r['slug'] if r['slug'] else r['id']}</loc><priority>0.7</priority></url>"
             for r in rows
         ]
-
-        xml_content = (
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-            f'    {"".join(urls)}\n'
-            "</urlset>"
-        )
-
-        SITEMAP_CACHE["xml"] = xml_content
-        SITEMAP_CACHE["time"] = current_time
-
+        xml_content = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n    {"".join(urls)}\n</urlset>'
+        SITEMAP_CACHE["xml"], SITEMAP_CACHE["time"] = xml_content, current_time
         return Response(content=xml_content, media_type="application/xml")
 
 
@@ -362,28 +312,27 @@ async def robots():
     return Response(content=content, media_type="text/plain")
 
 
-@app.get("/anime/{anime_id}")
-async def get_anime_page(request: Request, anime_id: str):
+@app.get("/anime/{identifier}")
+async def get_anime_page(request: Request, identifier: str):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
-        # 1. Получаем текущее аниме
-        curr = await db.execute("SELECT * FROM anime WHERE id = ?", (anime_id,))
+        curr = await db.execute(
+            "SELECT * FROM anime WHERE slug = ? OR id = ?", (identifier, identifier)
+        )
         anime = await curr.fetchone()
 
         if not anime:
             raise HTTPException(status_code=404)
 
-        # --- ПРОДВИНУТАЯ ЛОГИКА РЕКОМЕНДАЦИЙ ---
+        if identifier == anime["id"] and anime["slug"]:
+            return RedirectResponse(url=f"/anime/{anime['slug']}", status_code=301)
+
         genres_list = (
             [g.strip() for g in anime["genres"].split(",")] if anime["genres"] else []
         )
         stop_words = {"аниме", "мультфильм", "короткометражка", "сериал"}
-
-        # Берем до 3-х значимых жанров
         target_genres = [g for g in genres_list if g.lower() not in stop_words][:3]
-
-        # Определяем основную студию (берем первую из списка)
         current_studio = (
             anime["studios"].split(",")[0].strip() if anime["studios"] else ""
         )
@@ -392,25 +341,25 @@ async def get_anime_page(request: Request, anime_id: str):
 
         similar_animes = []
         if target_genres:
-            # Условия для жанров
             where_genres = " OR ".join(["genres LIKE ?" for _ in target_genres])
-            # Веса: Жанры (+1 за каждый), Студия (+2), Тип (+1)
             weight_genres = " + ".join(
                 [f"(CASE WHEN genres LIKE ? THEN 1 ELSE 0 END)" for _ in target_genres]
             )
 
-            # Параметры запроса
-            params = [f"%{g}%" for g in target_genres]  # Для WHERE
-            params += [f"%{g}%" for g in target_genres]  # Для веса жанров
-            params.append(
-                f"%{current_studio}%" if current_studio else ""
-            )  # Для веса студии
-            params.append(current_type)  # Для веса типа
-            params.append(anime_id)  # Исключаем само аниме
-            params.append(kp_id)  # Исключаем текущую франшизу
+            params = [f"%{g}%" for g in target_genres] + [
+                f"%{g}%" for g in target_genres
+            ]
+            params.extend(
+                [
+                    f"%{current_studio}%" if current_studio else "",
+                    current_type,
+                    anime["id"],
+                    kp_id,
+                ]
+            )
 
             query = f"""
-                SELECT id, title, poster_url, rating_shikimori, year,
+                SELECT id, slug, title, poster_url, rating_shikimori, year,
                 (({weight_genres}) + 
                  (CASE WHEN studios LIKE ? THEN 2 ELSE 0 END) + 
                  (CASE WHEN type = ? THEN 1 ELSE 0 END)) as weight
@@ -418,18 +367,15 @@ async def get_anime_page(request: Request, anime_id: str):
                 WHERE ({where_genres}) 
                 AND id != ? 
                 AND (kinopoisk_id IS NULL OR kinopoisk_id != ?)
-                -- Группируем по KP_ID, а если его нет — по ID самого аниме
                 GROUP BY COALESCE(kinopoisk_id, id) 
                 ORDER BY weight DESC, rating_shikimori DESC
                 LIMIT 24
             """
-
             cursor_sim = await db.execute(query, params)
             similar_animes = await cursor_sim.fetchall()
 
-        # 2. Поиск сезонов (как и раньше)
         cursor_seasons = await db.execute(
-            "SELECT id, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
+            "SELECT id, slug, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
             (kp_id,),
         )
         seasons = await cursor_seasons.fetchall()

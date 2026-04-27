@@ -127,7 +127,7 @@
         {% if results %}
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {% for anime in results %}
-            <a href="/anime/{{ anime.id }}"
+            <a href="/anime/{{ anime.slug if anime.slug else anime.id }}"
                 class="group relative w-full flex-shrink-0 rounded-2xl overflow-hidden shadow-lg shadow-black/50 hover:shadow-indigo-500/20 hover:-translate-y-2 transition-all duration-300 bg-slate-800">
                 <div class="relative w-full aspect-[2/3] overflow-hidden">
                     <img src="{{ anime.poster_url }}" onerror="this.onerror=null; this.src='/static/no-poster.jpg';"

@@ -48,7 +48,9 @@ function renderBookmarks() {
             return;
         }
 
-        container.innerHTML = data[key].map(item => `
+        container.innerHTML = data[key].map(item => {
+            // В закладках мы теперь тоже используем slug для ссылок
+            return `
             <div class="flex items-center gap-4 p-2 hover:bg-white/5 rounded-xl transition group">
                 <img src="${item.poster}" class="w-12 h-16 object-cover rounded-lg shadow-md">
                 <div class="flex-grow min-w-0">
@@ -58,7 +60,7 @@ function renderBookmarks() {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-        `).join('');
+        `}).join('');
     });
 }
 
