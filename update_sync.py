@@ -62,6 +62,18 @@ async def quick_update():
                     m_data = anime.get("material_data", {})
                     slug = generate_slug(anime["title"], anime["id"])
 
+                    cursor = await db.execute(
+                        "SELECT episodes_count FROM anime WHERE kinopoisk_id = ? AND title = ?",
+                        (str(kp_id), anime["title"]),
+                    )
+                    row = await cursor.fetchone()
+                    new_episodes = anime.get("episodes_count", 1)
+
+                    if row and row[0] > new_episodes:
+                        final_episodes = row[0]
+                    else:
+                        final_episodes = new_episodes
+
                     # Подготавливаем данные
                     anime_data = (
                         anime["id"],
@@ -71,7 +83,7 @@ async def quick_update():
                         anime.get("title_orig"),
                         anime.get("other_title"),
                         anime.get("year"),
-                        anime.get("episodes_count", 1),
+                        final_episodes,
                         str(kp_id),
                         str(anime.get("shikimori_id", "None")),
                         str(anime.get("imdb_id", "None")),
