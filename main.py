@@ -290,54 +290,70 @@ async def get_random_anime():
 
 
 SITEMAP_CACHE = {"xml": "", "time": 0}
-SITEMAP_TTL = 86400
+SITEMAP_TTL = 86400  # Срок годности кэша: 24 часа
 
 
 @app.get("/sitemap.xml")
-async def get_sitemap(request: Request):
-    """Динамическая карта сайта для Яндекса и Google."""
-    global SITEMAP_CACHE
+async def sitemap_index():
+    """Главный индексный файл"""
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "    <sitemap>\n"
+        "        <loc>https://gochilly.fun/sitemap_main.xml</loc>\n"
+        "        <lastmod>2026-04-27</lastmod>\n"
+        "    </sitemap>\n"
+        "    <sitemap>\n"
+        "        <loc>https://gochilly.fun/sitemap_anime.xml</loc>\n"
+        "        <lastmod>2026-04-27</lastmod>\n"
+        "    </sitemap>\n"
+        "</sitemapindex>"
+    )
+    return Response(content=xml, media_type="application/xml")
+
+
+@app.get("/sitemap_main.xml")
+async def sitemap_main():
+    """Ситмап для статических страниц"""
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "    <url><loc>https://gochilly.fun/</loc><priority>1.0</priority></url>\n"
+        "    <url><loc>https://gochilly.fun/catalog</loc><priority>0.9</priority></url>\n"
+        "    <url><loc>https://gochilly.fun/random</loc><priority>0.6</priority></url>\n"
+        "</urlset>"
+    )
+    return Response(content=xml, media_type="application/xml")
+
+
+@app.get("/sitemap_anime.xml")
+async def sitemap_anime():
+    """Ситмап тайтлов"""
     current_time = time.time()
 
-    if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"]) < SITEMAP_TTL:
+    if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"] < SITEMAP_TTL):
         return Response(content=SITEMAP_CACHE["xml"], media_type="application/xml")
 
-    base_url = str(request.base_url).rstrip("/")
-
+    # 3. Генерация нового ситмапа, если кэш пуст или устарел
     async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        cursor = await db.execute("SELECT id, updated_at FROM anime")
-        animes = await cursor.fetchall()
+        cursor = await db.execute("SELECT id FROM anime")
+        rows = await cursor.fetchall()
+        urls = [
+            f"<url><loc>https://gochilly.fun/anime/{r[0]}</loc><priority>0.7</priority></url>"
+            for r in rows
+        ]
 
-    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
-        <loc>{base_url}/</loc>
-        <changefreq>hourly</changefreq>
-        <priority>1.0</priority>
-    </url>
-"""
-
-    for anime in animes:
-        lastmod_tag = (
-            f"\n        <lastmod>{anime['updated_at']}</lastmod>"
-            if anime["updated_at"]
-            else ""
+        xml_content = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f'    {"".join(urls)}\n'
+            "</urlset>"
         )
 
-        xml_content += f"""
-    <url>
-        <loc>{base_url}/anime/{anime["id"]}</loc>{lastmod_tag}
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>"""
+        SITEMAP_CACHE["xml"] = xml_content
+        SITEMAP_CACHE["time"] = current_time
 
-    xml_content += "\n</urlset>"
-
-    SITEMAP_CACHE["xml"] = xml_content
-    SITEMAP_CACHE["time"] = current_time
-
-    return Response(content=xml_content, media_type="application/xml")
+        return Response(content=xml_content, media_type="application/xml")
 
 
 @app.get("/robots.txt")
