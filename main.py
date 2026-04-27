@@ -260,19 +260,19 @@ async def sitemap_index():
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         "    <sitemap>\n"
-        "        <loc>https://gochilly.fun/sitemap_main.xml</loc>\n"
+        "        <loc>https://gochilly.fun/sitemap-main.xml</loc>\n"
         "        <lastmod>2026-04-27</lastmod>\n"
         "    </sitemap>\n"
         "    <sitemap>\n"
-        "        <loc>https://gochilly.fun/sitemap_anime.xml</loc>\n"
+        "        <loc>https://gochilly.fun/sitemap-anime.xml</loc>\n"
         "        <lastmod>2026-04-27</lastmod>\n"
         "    </sitemap>\n"
         "</sitemapindex>"
     )
-    return Response(content=xml, media_type="application/xml")
+    return Response(content=xml, media_type="text/xml; charset=utf-8")
 
 
-@app.get("/sitemap_main.xml")
+@app.get("/sitemap-main.xml")
 async def sitemap_main():
     """Ситмап для статических страниц"""
     xml = (
@@ -283,14 +283,16 @@ async def sitemap_main():
         "    <url><loc>https://gochilly.fun/random</loc><priority>0.6</priority></url>\n"
         "</urlset>"
     )
-    return Response(content=xml, media_type="application/xml")
+    return Response(content=xml, media_type="text/xml; charset=utf-8")
 
 
-@app.get("/sitemap_anime.xml")
+@app.get("/sitemap-anime.xml")
 async def sitemap_anime():
     current_time = time.time()
     if SITEMAP_CACHE["xml"] and (current_time - SITEMAP_CACHE["time"] < SITEMAP_TTL):
-        return Response(content=SITEMAP_CACHE["xml"], media_type="application/xml")
+        return Response(
+            content=SITEMAP_CACHE["xml"], media_type="text/xml; charset=utf-8"
+        )
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -303,7 +305,7 @@ async def sitemap_anime():
         ]
         xml_content = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n    {"".join(urls)}\n</urlset>'
         SITEMAP_CACHE["xml"], SITEMAP_CACHE["time"] = xml_content, current_time
-        return Response(content=xml_content, media_type="application/xml")
+        return Response(content=xml_content, media_type="text/xml; charset=utf-8")
 
 
 @app.get("/robots.txt")
