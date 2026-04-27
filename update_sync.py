@@ -2,12 +2,22 @@ import asyncio
 import httpx
 import aiosqlite
 import os
+import re
 from dotenv import load_dotenv
 
 # Загрузка настроек
 load_dotenv()
 KODIK_TOKEN = os.getenv("KODIK_TOKEN")
 DB_PATH = "/root/chilly_v2/anime.db"
+
+
+def generate_slug(title, anime_id):
+    symbols = ("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", "abvgdeejzijklmnoprstufhzcss_y_eua")
+    tr = {ord(a): ord(b) for a, b in zip(*symbols)}
+    clean_name = title.lower().translate(tr)
+    clean_name = re.sub(r"[^\w]+", "-", clean_name).strip("-")
+    short_id = anime_id.split("-")[-1]
+    return f"{clean_name}-{short_id}"
 
 
 async def quick_update():
@@ -49,10 +59,12 @@ async def quick_update():
                         continue
 
                     m_data = anime.get("material_data", {})
+                    slug = generate_slug(anime["title"], anime["id"])
 
                     # Подготавливаем данные
                     anime_data = (
                         anime["id"],
+                        slug,
                         anime["type"],
                         anime["title"],
                         anime.get("title_orig"),
@@ -93,11 +105,11 @@ async def quick_update():
                     await db.execute(
                         """
                         INSERT INTO anime (
-                            id, type, title, title_orig, other_title, year, 
+                            id, slug, type, title, title_orig, other_title, year, 
                             episodes_count, kinopoisk_id, shikimori_id, imdb_id, 
                             rating_kp, rating_imdb, rating_shikimori, poster_url, 
                             description, genres, studios, player_link, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         anime_data,
                     )
