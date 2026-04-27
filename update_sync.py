@@ -68,6 +68,9 @@ async def quick_update():
 
                     new_episodes = anime.get("episodes_count", 1)
 
+                    if anime["type"] == "anime" and new_episodes == 0:
+                        new_episodes = 1
+
                     if row:
                         existing_episodes = row[0]
 
