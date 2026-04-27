@@ -375,7 +375,7 @@ async def get_anime_page(request: Request, identifier: str):
             similar_animes = await cursor_sim.fetchall()
 
         cursor_seasons = await db.execute(
-            "SELECT id, slug, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC",
+            "SELECT id, slug, title, player_link FROM anime WHERE kinopoisk_id = ? ORDER BY year ASC, title ASC",
             (kp_id,),
         )
         seasons = await cursor_seasons.fetchall()
