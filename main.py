@@ -57,16 +57,20 @@ templates.env.filters["timeago"] = timeago
 
 def clean_title(title: str) -> str:
     patterns = [
+        r"//.*",  # Уберет всё после // (для .hack//)
+        r":.*",  # Уберет всё после двоеточия (для Гинтамы)
         r"\[?ТВ-\d+\]?",
-        r"\(?ТВ-\d+\)?",
         r"\d+\s*сезон",
-        r"Часть\s*\d+",
         r"Season\s*\d+",
-        r"-\d+$",
+        r"Часть\s*\d+",
     ]
     for p in patterns:
         title = re.sub(p, "", title, flags=re.IGNORECASE)
-    return title.strip().rstrip("-").strip()
+    return title.strip()
+
+
+# НЕ ЗАБУДЬ ЗАРЕГИСТРИРОВАТЬ ФИЛЬТР:
+templates.env.filters["clean_title"] = clean_title
 
 
 @app.get("/")
@@ -97,11 +101,15 @@ async def read_root(request: Request):
 
         popular_animes = await db.fetch("""
             SELECT * FROM (
-                SELECT DISTINCT ON (title) id, slug, title, poster_url, rating_shikimori, year, episodes_count 
+                SELECT DISTINCT ON (
+                    LOWER(TRIM(regexp_replace(title, '(\/\/|:|\[|\(|Season|Сезон).*', '', 'gi')))
+                ) id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score
                 FROM anime 
-                ORDER BY title, rating_shikimori DESC
+                ORDER BY 
+                    LOWER(TRIM(regexp_replace(title, '(\/\/|:|\[|\(|Season|Сезон).*', '', 'gi'))),
+                    rating_shikimori DESC
             ) AS sub
-            ORDER BY rating_shikimori DESC 
+            ORDER BY score DESC 
             LIMIT 48
         """)
 
