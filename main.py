@@ -276,6 +276,13 @@ async def get_random_anime():
     return RedirectResponse(url="/")
 
 
+@app.get("/support", response_class=HTMLResponse)
+async def get_support_page(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="support.html", context={"request": request}
+    )
+
+
 SITEMAP_CACHE = {"xml": "", "time": 0}
 SITEMAP_TTL = 86400
 
