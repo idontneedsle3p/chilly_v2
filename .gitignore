@@ -12,6 +12,7 @@ anime.db
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # Секретные файлы (на будущее, если добавишь пароли или ключи API)
 .env
@@ -26,3 +27,4 @@ Thumbs.db
 .idea/
 
 start.bat
+
