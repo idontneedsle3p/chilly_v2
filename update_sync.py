@@ -1,6 +1,6 @@
 import asyncio
 import httpx
-import aiosqlite
+import asyncpg
 import os
 import re
 from dotenv import load_dotenv
@@ -8,10 +8,13 @@ from dotenv import load_dotenv
 # Загрузка настроек
 load_dotenv()
 KODIK_TOKEN = os.getenv("KODIK_TOKEN")
-DB_PATH = "/root/chilly_v2/anime.db"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://admin:123@localhost:5432/anime_db"
+)
 
 
 def generate_slug(title, anime_id):
+    # Логика генерации слага остается без изменений
     symbols = ("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", "abvgdeejzijklmnoprstufhzcss-y-eua")
     tr = {ord(a): ord(b) for a, b in zip(*symbols)}
     clean_name = title.lower().translate(tr)
@@ -22,7 +25,6 @@ def generate_slug(title, anime_id):
 
 
 async def quick_update():
-    # Используем лимит 50, чтобы снизить риск ошибки 500 от Kodik
     url = "https://kodik-api.com/list"
     params = {
         "token": KODIK_TOKEN,
@@ -49,78 +51,84 @@ async def quick_update():
                 print("📭 Новых обновлений пока нет.")
                 return
 
-            async with aiosqlite.connect(DB_PATH) as db:
-                added_or_updated = 0
+            # Подключаемся к PostgreSQL
+            conn = await asyncpg.connect(DATABASE_URL)
+            added_or_updated = 0
 
+            # Используем транзакцию для надежности
+            async with conn.transaction():
                 for anime in results:
                     kp_id = anime.get("kinopoisk_id")
                     if not kp_id or str(kp_id).lower() == "none":
                         continue
 
-                    # 1. Ищем, есть ли уже это аниме в базе
-                    cursor = await db.execute(
-                        "SELECT episodes_count FROM anime WHERE kinopoisk_id = ? AND title = ?",
-                        (str(kp_id), anime["title"]),
+                    # 1. Ищем существующее аниме (в Postgres используем $1, $2)
+                    row = await conn.fetchrow(
+                        "SELECT episodes_count FROM anime WHERE kinopoisk_id = $1 AND title = $2",
+                        str(kp_id),
+                        anime["title"],
                     )
-                    row = await cursor.fetchone()
 
-                    new_episodes = anime.get("episodes_count", 1)
+                    new_episodes = int(anime.get("episodes_count", 1))
                     if anime["type"] == "anime" and new_episodes == 0:
                         new_episodes = 1
 
                     if row:
-                        existing_episodes = row[0]
+                        existing_episodes = row["episodes_count"]
 
-                        # Обновляем ТОЛЬКО если серий стало больше
                         if new_episodes > existing_episodes:
                             m_data = anime.get("material_data", {})
                             slug = generate_slug(anime["title"], anime["id"])
 
-                            await db.execute(
+                            await conn.execute(
                                 """
                                 UPDATE anime SET 
-                                    slug = ?, episodes_count = ?, updated_at = ?, 
-                                    player_link = ?, rating_kp = ?, rating_imdb = ?, 
-                                    rating_shikimori = ?, poster_url = ?
-                                WHERE kinopoisk_id = ? AND title = ?
+                                    slug = $1, episodes_count = $2, updated_at = $3, 
+                                    player_link = $4, rating_kp = $5, rating_imdb = $6, 
+                                    rating_shikimori = $7, poster_url = $8
+                                WHERE kinopoisk_id = $9 AND title = $10
                                 """,
-                                (
-                                    slug,
-                                    new_episodes,
-                                    anime.get("updated_at"),
-                                    anime.get("link"),
-                                    m_data.get("kinopoisk_rating", 0.0),
-                                    m_data.get("imdb_rating", 0.0),
-                                    m_data.get("shikimori_rating", 0.0),
-                                    m_data.get("poster_url"),
-                                    str(kp_id),
-                                    anime["title"],
-                                ),
+                                slug,
+                                new_episodes,
+                                anime.get("updated_at"),
+                                anime.get("link"),
+                                float(m_data.get("kinopoisk_rating", 0.0)),
+                                float(m_data.get("imdb_rating", 0.0)),
+                                float(m_data.get("shikimori_rating", 0.0)),
+                                m_data.get("poster_url"),
+                                str(kp_id),
+                                anime["title"],
                             )
                             added_or_updated += 1
-                        else:
-                            # Пропускаем, если серий столько же. updated_at в базе не меняется!
-                            continue
                     else:
                         # 2. Вставка нового аниме
                         m_data = anime.get("material_data", {})
                         slug = generate_slug(anime["title"], anime["id"])
 
-                        anime_data = (
-                            anime["id"],
+                        # Принудительно приводим к типам, которые ждет Postgres
+                        await conn.execute(
+                            """
+                            INSERT INTO anime (
+                                id, slug, type, title, title_orig, other_title, year, 
+                                episodes_count, kinopoisk_id, shikimori_id, imdb_id, 
+                                rating_kp, rating_imdb, rating_shikimori, poster_url, 
+                                description, genres, studios, player_link, updated_at
+                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+                            """,
+                            str(anime["id"]),
                             slug,
                             anime["type"],
                             anime["title"],
                             anime.get("title_orig"),
                             anime.get("other_title"),
-                            anime.get("year"),
+                            int(anime.get("year")) if anime.get("year") else None,
                             new_episodes,
                             str(kp_id),
                             str(anime.get("shikimori_id", "None")),
                             str(anime.get("imdb_id", "None")),
-                            m_data.get("kinopoisk_rating", 0.0),
-                            m_data.get("imdb_rating", 0.0),
-                            m_data.get("shikimori_rating", 0.0),
+                            float(m_data.get("kinopoisk_rating", 0.0)),
+                            float(m_data.get("imdb_rating", 0.0)),
+                            float(m_data.get("shikimori_rating", 0.0)),
                             m_data.get("poster_url"),
                             m_data.get("description"),
                             (
@@ -136,17 +144,10 @@ async def quick_update():
                             anime.get("link"),
                             anime.get("updated_at"),
                         )
-
-                        await db.execute(
-                            "INSERT INTO anime (...) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            anime_data,
-                        )
                         added_or_updated += 1
 
-                # Сохраняем все изменения пачкой после цикла
-
-                await db.commit()
-                print(f"✅ Обработка завершена. Обновлено тайтлов: {added_or_updated}")
+            await conn.close()
+            print(f"✅ Обработка завершена. Обновлено тайтлов: {added_or_updated}")
 
         except Exception as e:
             print(f"🔥 Критическая ошибка: {e}")
