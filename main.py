@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from datetime import datetime, timezone
+from datetime import date
 from contextlib import asynccontextmanager
 
 load_dotenv()
@@ -301,16 +302,17 @@ SITEMAP_TTL = 86400
 @app.get("/sitemap.xml")
 async def sitemap_index():
     """Главный индексный файл"""
+    current_date = datetime.now(timezone.utc).date().isoformat()
     xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         "    <sitemap>\n"
         "        <loc>https://gochilly.fun/sitemap-main.xml</loc>\n"
-        "        <lastmod>2026-04-27</lastmod>\n"
+        f"        <lastmod>{current_date}</lastmod>\n"
         "    </sitemap>\n"
         "    <sitemap>\n"
         "        <loc>https://gochilly.fun/sitemap-anime.xml</loc>\n"
-        "        <lastmod>2026-04-27</lastmod>\n"
+        f"        <lastmod>{current_date}</lastmod>\n"
         "    </sitemap>\n"
         "</sitemapindex>"
     )
