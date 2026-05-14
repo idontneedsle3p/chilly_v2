@@ -56,6 +56,31 @@ def timeago(value):
 templates.env.filters["timeago"] = timeago
 
 
+def clean_genres(value):
+    if not value:
+        return ""
+    genres = [g.strip().lower() for g in value.split(",")]
+    unique_genres = list(dict.fromkeys(genres))
+    return ", ".join(unique_genres)
+
+
+def translate_type(value):
+    if not value:
+        return ""
+    mapping = {
+        "anime-serial": "Аниме",
+        "anime": "Фильм",
+        "ova": "ova",
+        "ona": "ona",
+        "special": "спешл",
+    }
+    return mapping.get(value.lower(), value.lower())
+
+
+templates.env.filters["clean_genres"] = clean_genres
+templates.env.filters["translate_type"] = translate_type
+
+
 def clean_title(title: str) -> str:
     patterns = [
         r"//.*",  # Уберет всё после // (для .hack//)
@@ -252,26 +277,58 @@ async def get_anime_page(request: Request, identifier: str):
             anime["studios"].split(",")[0].strip() if anime["studios"] else ""
         )
 
-        # Поиск похожих
         similar_animes = []
         if genres:
-            # Упрощенная логика весов для Postgres
+            g1 = f"%{genres[0]}%"
+            g2 = f"%{genres[1]}%" if len(genres) > 1 else g1
+            g3 = f"%{genres[2]}%" if len(genres) > 2 else g1
+
             similar_animes = await db.fetch(
                 """
-                SELECT DISTINCT ON (title) id, slug, title, poster_url, rating_shikimori, year
-                FROM anime 
-                WHERE genres ILIKE $1 AND id != $2
-                ORDER BY title, rating_shikimori DESC LIMIT 24
+                SELECT * FROM (
+                    -- 1. Сначала отбираем по одному лучшему аниме из каждой франшизы
+                    SELECT * FROM (
+                        SELECT DISTINCT ON (COALESCE(kinopoisk_id, id::text)) 
+                            id, slug, title, poster_url, rating_shikimori, year, kinopoisk_id
+                        FROM anime 
+                        WHERE (genres ILIKE $1 OR genres ILIKE $2 OR genres ILIKE $3) 
+                          AND id != $4
+                          AND rating_shikimori >= 7.0 
+                        -- Важно: сначала сортируем по ID франшизы, потом по рейтингу
+                        ORDER BY COALESCE(kinopoisk_id, id::text), rating_shikimori DESC
+                    ) as unique_franchises
+                    -- 2. Берем ТОП-30 самых популярных франшиз
+                    ORDER BY rating_shikimori DESC
+                    LIMIT 30
+                ) as random_pool
+                -- 3. Перемешиваем их для разнообразия
+                ORDER BY RANDOM() 
+                LIMIT 30
             """,
-                f"%{genres[0]}%",
+                g1,
+                g2,
+                g3,
                 anime["id"],
             )
 
         seasons = await db.fetch(
             """
             SELECT id, slug, title, player_link 
-            FROM anime WHERE kinopoisk_id = $1 
-            ORDER BY year ASC, title ASC
+            FROM anime 
+            WHERE kinopoisk_id = $1 
+            ORDER BY 
+                year ASC, 
+                -- 1. Пытаемся извлечь номер из "ТВ-X" и сортируем как число
+                (substring(title from 'ТВ-(\d+)')::int) NULLS LAST,
+                -- 2. Если номера ТВ одинаковые, проверяем слова "первый/второй"
+                CASE 
+                    WHEN title ~* 'первый сезон|часть 1' THEN 1
+                    WHEN title ~* 'второй сезон|часть 2' THEN 2
+                    WHEN title ~* 'третий сезон|часть 3' THEN 3
+                    ELSE 5
+                END ASC,
+                -- 3. Напоследок обычная сортировка
+                title ASC
         """,
             anime["kinopoisk_id"],
         )

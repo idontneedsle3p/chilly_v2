@@ -156,15 +156,6 @@
                             </svg>
                             <span class="hidden sm:inline">Закладки</span>
                         </button>
-                        <a href="/support"
-                            class="flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] md:text-xs font-bold bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 hover:shadow-[0_0_15px_rgba(249,115,22,0.2)] transition-all">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
-                                    clip-rule="evenodd"></path>
-                            </svg>
-                            <span class="hidden sm:inline">Поддержать</span>
-                        </a>
                     </nav>
                 </div>
 
@@ -214,14 +205,14 @@
                     </div>
                     <ul class="space-y-3 text-sm">
                         <li class="flex justify-between"><span class="text-slate-500">Тип</span> <span
-                                class="text-slate-200 font-medium">{{ anime.type }}</span></li>
+                                class="text-slate-200 font-medium">{{ anime.type | translate_type }}</span></li>
                         <li class="flex justify-between"><span class="text-slate-500">Год</span> <span
                                 class="text-slate-200 font-medium">{{ anime.year }}</span></li>
                         <li class="flex justify-between"><span class="text-slate-500">Эпизоды</span> <span
                                 class="text-slate-200 font-medium">{{ anime.episodes_count }}</span></li>
                         <li class="flex justify-between flex-col mt-2">
                             <span class="text-slate-500 mb-1">Жанры</span>
-                            <span class="text-slate-300">{{ anime.genres }}</span>
+                            <span class="text-slate-300">{{ anime.genres | clean_genres }}</span>
                         </li>
                         <li class="flex justify-between flex-col mt-2">
                             <span class="text-slate-500 mb-1">Студия</span>
@@ -234,7 +225,7 @@
             <div class="w-full lg:w-3/4 flex flex-col z-10">
                 <h1
                     class="text-3xl lg:text-5xl font-extrabold text-white mb-2 leading-tight tracking-tight break-words">
-                    {{ clean_title if clean_title else anime.title }}
+                    {{ anime.title }}
                 </h1>
                 <h2 class="text-xl text-slate-500 mb-8 font-medium break-words">{{ anime.title_orig }}</h2>
 
@@ -356,10 +347,7 @@
                         <div class="ambient-glow"></div>
                         <div class="relative w-full h-full p-1 rounded-xl player-gradient-border z-10">
                             <div class="w-full h-full bg-black rounded-lg overflow-hidden relative player-container">
-                                <div id="kodik-wrapper" class="w-full h-full block">
-                                    <div id="kodik-player"></div>
-                                </div>
-                                <div id="vibix-wrapper" class="hidden w-full h-full">
+                                <div id="vibix-wrapper" class="w-full h-full block">
                                     {% if anime.kinopoisk_id %}
                                     <ins data-publisher-id="676913736" data-type="kp" data-id="{{ anime.kinopoisk_id }}"
                                         data-width="100%" data-height="100%" data-design="3" data-color1="#5283cb"
@@ -370,6 +358,9 @@
                                         class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-900 text-sm">
                                         Плеер не найден</div>
                                     {% endif %}
+                                </div>
+                                <div id="kodik-wrapper" class="hidden w-full h-full">
+                                    <div id="kodik-player"></div>
                                 </div>
                             </div>
                         </div>
@@ -506,13 +497,13 @@
             const btn2 = document.getElementById('btn-p2');
 
             if (num === 1) {
-                kodik.classList.remove('hidden');
-                vibix.classList.add('hidden');
+                vibix.classList.remove('hidden');
+                kodik.classList.add('hidden');
                 btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                 btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
             } else {
-                kodik.classList.add('hidden');
-                vibix.classList.remove('hidden');
+                vibix.classList.add('hidden');
+                kodik.classList.remove('hidden');
                 btn2.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-lg";
                 btn1.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200";
 
@@ -544,6 +535,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             saveLastViewed('{{ anime.slug if anime.slug else anime.id }}', '{{ anime.title }}', '{{ anime.poster_url }}');
+            if (window.RendexSDK) {
+                window.RendexSDK.init();
+            }
 
             const data = getStorage();
             let currentStatus = 'none';
