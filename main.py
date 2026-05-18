@@ -29,7 +29,12 @@ async def lifespan(app: FastAPI):
     await app.state.pool.close()
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=None,  # Отключает /docs
+    redoc_url=None,  # Отключает /redoc
+    openapi_url=None,  # Отключает /openapi.json
+)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -130,16 +135,72 @@ async def read_root(request: Request):
                 SELECT DISTINCT ON (
                     LOWER(TRIM(regexp_replace(title, '(\/\/|:|\[|\(|Season|Сезон).*', '', 'gi')))
                 ) id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score
-                FROM anime 
+                FROM anime
+                WHERE type != 'anime'
                 ORDER BY 
                     LOWER(TRIM(regexp_replace(title, '(\/\/|:|\[|\(|Season|Сезон).*', '', 'gi'))),
                     rating_shikimori DESC
             ) AS sub
             ORDER BY score DESC 
-            LIMIT 48
+            LIMIT 120
         """)
 
-    data = {"new_animes": new_animes, "popular_animes": popular_animes}
+        isekai_animes = await db.fetch("""
+            SELECT * FROM (
+                SELECT DISTINCT ON (COALESCE(kinopoisk_id, id::text)) 
+                    id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score, kinopoisk_id
+                FROM anime 
+                WHERE genres ILIKE '%Исэкай%' AND type != 'anime'
+                ORDER BY COALESCE(kinopoisk_id, id::text), rating_shikimori DESC
+            ) AS sub
+            ORDER BY score DESC 
+            LIMIT 120
+        """)
+
+        romantic_animes = await db.fetch("""
+            SELECT * FROM (
+                SELECT DISTINCT ON (COALESCE(kinopoisk_id, id::text)) 
+                    id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score, kinopoisk_id
+                FROM anime 
+                WHERE genres ILIKE '%Романтика%' AND type != 'anime'
+                ORDER BY COALESCE(kinopoisk_id, id::text), rating_shikimori DESC
+            ) AS sub
+            ORDER BY score DESC 
+            LIMIT 120
+        """)
+
+        phys_animes = await db.fetch("""
+            SELECT * FROM (
+                SELECT DISTINCT ON (COALESCE(kinopoisk_id, id::text)) 
+                    id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score, kinopoisk_id
+                FROM anime 
+                WHERE genres ILIKE '%Психологическое%' AND type != 'anime'
+                ORDER BY COALESCE(kinopoisk_id, id::text), rating_shikimori DESC
+            ) AS sub
+            ORDER BY score DESC 
+            LIMIT 120
+        """)
+
+        school_animes = await db.fetch("""
+            SELECT * FROM (
+                SELECT DISTINCT ON (COALESCE(kinopoisk_id, id::text)) 
+                    id, slug, title, poster_url, rating_shikimori, year, episodes_count, rating_shikimori as score, kinopoisk_id
+                FROM anime 
+                WHERE genres ILIKE '%Школа%' AND type != 'anime'
+                ORDER BY COALESCE(kinopoisk_id, id::text), rating_shikimori DESC
+            ) AS sub
+            ORDER BY score DESC 
+            LIMIT 120
+        """)
+
+    data = {
+        "new_animes": new_animes,
+        "popular_animes": popular_animes,
+        "isekai_animes": isekai_animes,
+        "romantic_animes": romantic_animes,
+        "phys_animes": phys_animes,
+        "school_animes": school_animes,
+    }
     CACHE["home_page"] = {"data": data, "time": current_time}
     return templates.TemplateResponse(
         request=request, name="index.html", context={"request": request, **data}
@@ -244,6 +305,84 @@ async def get_catalog(request: Request, genre: str = Query(None)):
 @app.get("/faq")
 async def get_faq(request: Request):
     return templates.TemplateResponse(request=request, name="faq.html", context={})
+
+
+@app.get("/all-anime", response_class=HTMLResponse)
+async def all_anime_archive(request: Request, page: int = Query(1, ge=1)):
+    # Количество аниме на одну страницу архива
+    per_page = 150
+    offset = (page - 1) * per_page
+
+    async with request.app.state.pool.acquire() as db:
+        # 1. Считаем общее количество тайтлов в базе данных для пагинации
+        total_count = await db.fetchval("SELECT COUNT(*) FROM anime")
+
+        # 2. Достаем порцию аниме (id, slug и title для красивого текста ссылки)
+        rows = await db.fetch(
+            "SELECT id, slug, title FROM anime ORDER BY id DESC LIMIT $1 OFFSET $2",
+            per_page,
+            offset,
+        )
+
+    # Высчитываем сколько всего страниц получится
+    total_pages = (total_count + per_page - 1) // per_page
+
+    # Генерируем массив HTML-ссылок для карточек аниме
+    anime_links = []
+    for r in rows:
+        slug_or_id = r["slug"] if r["slug"] else r["id"]
+        title = r["title"] if r["title"] else f"Аниме ID {r['id']}"
+        anime_links.append(
+            f'<li><a href="/anime/{slug_or_id}" class="text-slate-300 hover:text-indigo-400 transition-colors">{title}</a></li>'
+        )
+
+    # Генерируем циферки переключения страниц (пагинацию)
+    pagination_links = []
+    for p in range(1, total_pages + 1):
+        if p == page:
+            # Активная страница подсвечена
+            pagination_links.append(
+                f'<span class="px-3 py-1 bg-indigo-600 text-white font-bold rounded-lg">{p}</span>'
+            )
+        else:
+            pagination_links.append(
+                f'<a href="/all-anime?page={p}" class="px-3 py-1 bg-slate-900 border border-white/5 text-slate-400 hover:text-white rounded-lg transition-colors">{p}</a>'
+            )
+
+    # Собираем легкую HTML-страницу на Tailwind
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Архив всех аниме | Карта сайта ChillyAnime</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-slate-950 text-slate-300 font-sans antialiased p-6 md:p-12">
+        <div class="container mx-auto max-w-5xl">
+            <header class="mb-8 border-b border-white/5 pb-4">
+                <a href="/" class="text-sm text-slate-500 hover:text-indigo-400 transition mb-2 inline-block">← На главную</a>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight">Навигационный архив аниме (Страница {page} из {total_pages})</h1>
+                <p class="text-sm text-slate-500 mt-1">Здесь собран полный список релизов нашего сайта для поисковых систем.</p>
+            </header>
+
+            <main>
+                <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 list-inside list-square mb-12">
+                    {"".join(anime_links)}
+                </ul>
+            </main>
+
+            <footer class="border-t border-white/5 pt-6">
+                <div class="flex flex-wrap gap-2 items-center justify-center">
+                    {"".join(pagination_links)}
+                </div>
+            </footer>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 
 @app.get("/random")
