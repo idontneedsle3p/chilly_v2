@@ -356,7 +356,7 @@ SITEMAP_CACHE = {"xml": "", "time": 0}
 SITEMAP_TTL = 86400
 
 
-@app.get("/sitemap.xml")
+@app.get("/sitemap-new.xml")
 async def sitemap_index():
     """Главный индексный файл"""
     current_date = datetime.now(timezone.utc).date().isoformat()
